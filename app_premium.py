@@ -717,6 +717,9 @@ with tab4:
                         # Mostrar Resultados
                         if surebets_encontradas:
                             st.success(f"🚀 ¡Encontradas {len(surebets_encontradas)} Surebets!")
+                            
+                            mensajes_telegram = []
+                            
                             for sb in surebets_encontradas:
                                 st.markdown(f"""
                                 <div class='glass-card conf-alto'>
@@ -724,6 +727,24 @@ with tab4:
                                     <p style="color:#8b949e; margin-bottom: 0;">{sb['picks']}</p>
                                 </div>
                                 """, unsafe_allow_html=True)
+                                
+                                # Formatear mensaje ultra-exclusivo para Telegram
+                                msj = f"🚨 <b>SUREBET DETECTADA (ARBITRAJE)</b> 🚨\n\n"
+                                msj += f"⚽ <b>Evento:</b> {sb['partido']}\n"
+                                msj += f"💰 <b>Beneficio 100% Seguro:</b> {sb['beneficio']}\n\n"
+                                msj += f"🎯 <b>Movimientos:</b>\n{sb['picks']}\n\n"
+                                msj += f"<i>🤖 H AI Quant Engine - Alerta VIP</i>"
+                                mensajes_telegram.append(msj)
+                                
+                            # Enviar a Telegram en background
+                            try:
+                                import motor_telegram
+                                st.toast("Enviando alertas Push a Telegram VIP...", icon="✈️")
+                                for m in mensajes_telegram:
+                                    motor_telegram.enviar_mensaje_telegram(m)
+                                st.success("✅ Alertas VIP enviadas a tu celular exitosamente.")
+                            except Exception as e:
+                                st.warning("⚠️ Surebets encontradas, pero el modulo de Telegram falló o no está configurado.")
                         else:
                             st.info("📉 No se encontró ninguna oportunidad de arbitraje del 100% en esta liga por ahora. Las casas de apuestas están alineadas.")
                     except Exception as e:
