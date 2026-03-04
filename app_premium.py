@@ -655,13 +655,14 @@ with tab4:
         st.warning("⚠️ Requiere tu API Key de The Odds API configurada.")
     else:
         liga_surebet = st.selectbox("Liga a escanear:", ["soccer_epl (Premier League)", "basketball_nba (NBA)", "soccer_spain_la_liga (La Liga)"])
+        filtro_casas = st.text_input("Filtrar por Casas de Apuestas (Opcional, separadas por coma, Ej: Betano, Olimpo, Pinnacle). Deja vacío el cuadro para rastrear todas las casas mundiales:")
         
         if st.button("📡 Buscar Dinero Fácil (Arbitraje)"):
             if use_credit(st.session_state['username']):
                 with st.spinner('Comparando miles de cuotas entre Bookmakers...'):
                     try:
                         codigo_liga = liga_surebet.split()[0]
-                        res = requests.get(f"https://api.the-odds-api.com/v4/sports/{codigo_liga}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us&markets=h2h").json()
+                        res = requests.get(f"https://api.the-odds-api.com/v4/sports/{codigo_liga}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us,uk,au&markets=h2h").json()
                         
                         surebets_encontradas = []
                         
@@ -679,6 +680,11 @@ with tab4:
                                 mejor_bookie_x = ""
                                 
                                 for bookie in event.get('bookmakers', []):
+                                    if filtro_casas:
+                                        casas_validas = [c.strip().lower() for c in filtro_casas.split(',')]
+                                        if not any(c in bookie['title'].lower() for c in casas_validas):
+                                            continue
+                                            
                                     if bookie['markets']:
                                         outcomes = bookie['markets'][0]['outcomes']
                                         for o in outcomes:
