@@ -312,6 +312,17 @@ st.markdown("""
         padding-top: 12px;
         color: #cbd5e1;
     }
+    
+    /* Responsive Mobile Design */
+    @media (max-width: 768px) {
+        .premium-title { font-size: 2rem !important; text-shadow: 0 0 10px #0ff; }
+        .subtitle { font-size: 0.8rem !important; letter-spacing: 2px !important; margin-bottom: 25px; }
+        .glass-card { padding: 15px !important; margin-bottom: 15px !important; }
+        .stButton>button { padding: 10px !important; font-size: 0.9rem !important; }
+        div[data-baseweb="tab-list"] { flex-wrap: wrap; gap: 2px; }
+        div[data-baseweb="tab"] { flex: 1 1 45%; text-align: center; margin-bottom: 5px; font-size: 0.7rem; padding: 8px 5px; }
+        .metric-value { font-size: 1.8rem !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -539,25 +550,26 @@ with tab1:
                 st.error("⚠️ Inserta el paquete de datos en el servidor primero.")
             else:
                 if use_credit(st.session_state['username']):
-                    st.markdown("### 🎯 Score Radar Matrix (1-10)")
                     # Concatenar para inyectar matemática si es futbol
                     data_final = poisson_data + "\nDatos crudos: " + user_input
                     resultado = analyze_ai(data_final, PROMPTS[deporte])
+                    
+                    # Clasificar clase de confianza evaluando la matriz numéricamente (ej. > 8.00)
+                    confianza_clase = "conf-alto" if "SCORE FINAL ORO: 8" in resultado.upper() or "SCORE FINAL ORO: 9" in resultado.upper() or "SCORE FINAL ORO: 10" in resultado.upper() else "conf-medio" if "SCORE FINAL" in resultado.upper() else "conf-bajo"
+                    st.session_state['res_oraculo'] = f"### 🎯 Score Radar Matrix (1-10)\n<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado}</pre></div>"
+                    
+                    # Auto Tracker (Guardar en CSV)
+                    try:
+                        with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
+                            writer = csv.writer(f, delimiter=';')
+                            writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, "Análisis Bot", "Radar Matrix Guardado", "N/A", "Pendiente", "0"])
+                    except Exception:
+                        pass
                 else:
                     st.error("❌ ENERGÍA AGOTADA. Contacte a su proveedor para recargar su licencia para este equipo.")
-                    resultado = "❌ LICENCIA VENCIDA. Contacte a su proveedor para adquirir más consultas H AI."
-                
-                # Clasificar clase de confianza evaluando la matriz numéricamente (ej. > 8.00)
-                confianza_clase = "conf-alto" if "SCORE FINAL ORO: 8" in resultado.upper() or "SCORE FINAL ORO: 9" in resultado.upper() or "SCORE FINAL ORO: 10" in resultado.upper() else "conf-medio" if "SCORE FINAL" in resultado.upper() else "conf-bajo"
-                st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado}</pre></div>", unsafe_allow_html=True)
-                
-                # Auto Tracker (Guardar en CSV)
-                try:
-                    with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
-                        writer = csv.writer(f, delimiter=';')
-                        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, "Análisis Bot", "Radar Matrix Guardado", "N/A", "Pendiente", "0"])
-                except Exception:
-                    pass
+                    
+        if 'res_oraculo' in st.session_state:
+            st.markdown(st.session_state['res_oraculo'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -572,12 +584,15 @@ with tab1:
             if equipo_scrape:
                 if use_credit(st.session_state['username']):
                     resultado_scrape = web_scraper_alineaciones(equipo_scrape)
-                    st.info(resultado_scrape)
+                    st.session_state['res_scraper'] = resultado_scrape
                 else:
                     st.error("❌ ENERGÍA AGOTADA. Adquiere una recarga de la terminal.")
 
             else:
                 st.error("Introduce un equipo.")
+                
+        if 'res_scraper' in st.session_state:
+            st.info(st.session_state['res_scraper'])
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -596,24 +611,28 @@ with tab2:
             if equipo_buscar:
                 if use_credit(st.session_state['username']):
                     match = buscar_equipo_api(equipo_buscar)
-                if match:
-                    home = match['home_team']
-                    away = match['away_team']
-                    sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
-                    st.success(f"✅ Interceptado en el mercado: {home} vs {away}")
-                    
-                    input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
-                    resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
-                    
-                    confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
-                    st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>", unsafe_allow_html=True)
-                else:
-                    st.warning("📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente.")
+                    if match:
+                        home = match['home_team']
+                        away = match['away_team']
+                        sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
+                        
+                        input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
+                        resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
+                        
+                        confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
+                        st.session_state['res_radar'] = f"✅ Interceptado en el mercado: {home} vs {away}<br><div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>"
+                    else:
+                        st.session_state['res_radar'] = "⚠️ 📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente."
+                else: # Solo error visual, el debito ya fallo o no paso
+                    st.error("❌ ENERGÍA AGOTADA para el radar global.")
             else:
-                # Caso else match ya estaba
                 pass
-            if not use_credit(st.session_state['username'], 0): # Solo error visual, el debito ya fallo o no paso
-                st.error("❌ ENERGÍA AGOTADA para el radar global.")
+                
+        if 'res_radar' in st.session_state:
+            if "Sin resultados" in st.session_state['res_radar']:
+                st.warning(st.session_state['res_radar'].replace("⚠️ ", ""))
+            elif "Interceptado" in st.session_state['res_radar']:
+                st.markdown(st.session_state['res_radar'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -639,10 +658,13 @@ with tab3:
             Entrega solo el ticket en formato lista, sus cuotas estimadas, y 1 oración de por qué matemáticamente están correlacionados."""
             
             resultado_parlay = analyze_ai(f"Partidos top de hoy en {parlay_sport}", prompt_parlay)
-            st.markdown(f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>", unsafe_allow_html=True)
+            st.session_state['res_parlay'] = f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>"
             st.balloons()
         else:
             st.error("❌ ENERGÍA AGOTADA.")
+            
+    if 'res_parlay' in st.session_state:
+        st.markdown(st.session_state['res_parlay'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------- PESTAÑA 4 (Arbitraje / Surebets) -------------
@@ -715,18 +737,18 @@ with tab4:
                                         })
                                         
                         # Mostrar Resultados
+                        html_out = ""
                         if surebets_encontradas:
-                            st.success(f"🚀 ¡Encontradas {len(surebets_encontradas)} Surebets!")
+                            html_out += f"<h3>🚀 ¡Encontradas {len(surebets_encontradas)} Surebets!</h3>"
                             
                             mensajes_telegram = []
-                            
                             for sb in surebets_encontradas:
-                                st.markdown(f"""
+                                html_out += f"""
                                 <div class='glass-card conf-alto'>
                                     <h4>✅ {sb['partido']} <span style="color:#00ff00;">(Beneficio Seguro: {sb['beneficio']})</span></h4>
                                     <p style="color:#8b949e; margin-bottom: 0;">{sb['picks']}</p>
                                 </div>
-                                """, unsafe_allow_html=True)
+                                """
                                 
                                 # Formatear mensaje ultra-exclusivo para Telegram
                                 msj = f"🚨 <b>SUREBET DETECTADA (ARBITRAJE)</b> 🚨\n\n"
@@ -742,15 +764,20 @@ with tab4:
                                 st.toast("Enviando alertas Push a Telegram VIP...", icon="✈️")
                                 for m in mensajes_telegram:
                                     motor_telegram.enviar_mensaje_telegram(m)
-                                st.success("✅ Alertas VIP enviadas a tu celular exitosamente.")
+                                html_out += "<p style='color:#0ff;'>✅ Alertas VIP enviadas a tu celular exitosamente.</p>"
                             except Exception as e:
-                                st.warning("⚠️ Surebets encontradas, pero el modulo de Telegram falló o no está configurado.")
+                                html_out += "<p style='color:#ffaa00;'>⚠️ Surebets encontradas, pero el modulo de Telegram falló o no está configurado.</p>"
                         else:
-                            st.info("📉 No se encontró ninguna oportunidad de arbitraje del 100% en esta liga por ahora. Las casas de apuestas están alineadas.")
+                            html_out = "📉 No se encontró ninguna oportunidad de arbitraje del 100% en esta liga por ahora. Las casas de apuestas están alineadas."
+                            
+                        st.session_state['res_surebet'] = html_out
                     except Exception as e:
                         st.error(f"Error procesando cuotas: {e}")
             else:
                 st.error("❌ ENERGÍA AGOTADA.")
+                
+        if 'res_surebet' in st.session_state:
+            st.markdown(st.session_state['res_surebet'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------- PESTAÑA 6 (Base de Datos Viva y ROI Web Tracker) -------------
@@ -867,28 +894,28 @@ with tab5:
         b_k = cuota - 1
         kelly = ((b_k * prob_dec) - (1 - prob_dec)) / b_k
         
-        st.markdown("<br>", unsafe_allow_html=True)
         if kelly <= 0:
-            st.error("❌ MATEMÁTICA NEGATIVA RECHAZADA: EV NO BET. Tu estimación no contrarresta el margen de la casa.")
+            st.session_state['res_kelly'] = "<p style='color:red;'>❌ MATEMÁTICA NEGATIVA RECHAZADA: EV NO BET. Tu estimación no contrarresta el margen de la casa.</p>"
         else:
             kelly_rec = kelly * 0.5 * 100
             monto = (kelly_rec / 100) * bank
             
-            mc1, mc2 = st.columns(2)
-            with mc1:
-                st.markdown(f"""
-                <div class='glass-card conf-alto'>
+            st.session_state['res_kelly'] = f"""
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class='glass-card conf-alto' style="flex: 1 1 200px;">
                     <p style="color:#8b949e; margin-bottom: 0;">RIESGO ESTRATÉGICO SUGERIDO</p>
                     <span class='metric-value'>{kelly_rec:.2f}%</span> <span style="color:#238636;">del Banco</span>
                 </div>
-                """, unsafe_allow_html=True)
-            with mc2:
-                st.markdown(f"""
-                <div class='glass-card conf-alto'>
+                <div class='glass-card conf-alto' style="flex: 1 1 200px;">
                     <p style="color:#8b949e; margin-bottom: 0;">TAMAÑO EXACTO DE OPERACIÓN</p>
                     <span class='metric-value'>${monto:.2f} USD</span>
                 </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """
+            
+    if 'res_kelly' in st.session_state:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(st.session_state['res_kelly'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------- PESTAÑA 7 (Machine Learning) -------------
@@ -947,15 +974,18 @@ with tab7:
                             cuota_pura_a = 100 / prob_away_ml if prob_away_ml > 0 else 0
                             cuota_pura_d = 100 / prob_draw_ml if prob_draw_ml > 0 else 0
                             
-                        st.markdown(f"""
+                        st.session_state['res_ml_f'] = f"""
                         <div class='glass-card conf-alto'>
                             <h4>🔮 Predicción Cuántica (Fútbol)</h4>
                             <p>🟢 Gana Local: <b>{prob_home_ml:.1f}%</b> (Si en Bet365 pagan MÁS que <b>@{cuota_pura_h:.2f}</b>, ¡HAY VALUE BET MATEÁTICO!)</p>
                             <p>🟡 Empate: <b>{prob_draw_ml:.1f}%</b> (Si pagan MÁS que @{cuota_pura_d:.2f}, apostarlo)</p>
                             <p>🔴 Gana Visita: <b>{prob_away_ml:.1f}%</b> (Si pagan MÁS que @{cuota_pura_a:.2f}, apostarlo)</p>
                         </div>
-                        """, unsafe_allow_html=True)
+                        """
                         st.balloons()
+                        
+                if 'res_ml_f' in st.session_state:
+                    st.markdown(st.session_state['res_ml_f'], unsafe_allow_html=True)
             
             elif deporte_ml == "Basquetbol":
                 st.markdown("**Analizador Pre-Match (Basquetbol Ratings)**")
@@ -976,7 +1006,7 @@ with tab7:
                             cuota_pura_h = 100 / prob_home_ml if prob_home_ml > 0 else 0
                             cuota_pura_a = 100 / prob_away_ml if prob_away_ml > 0 else 0
                         
-                        st.markdown(f"""
+                        st.session_state['res_ml_b'] = f"""
                         <div class='glass-card conf-alto'>
                             <h4>🔮 Predicción Cuántica (Básquetbol)</h4>
                             <p>🟢 Win Local (MoneyLine): <b>{prob_home_ml:.1f}%</b> | Cuota Justa Asignada: <b>@{cuota_pura_h:.2f}</b></p>
@@ -984,7 +1014,10 @@ with tab7:
                             <hr>
                             <p style='color:#00ffaa;'><em>Si la casa regala una cuota mayor a la Asignada arriba, tienes beneficio garantizado a largo plazo en volumen.</em></p>
                         </div>
-                        """, unsafe_allow_html=True)
+                        """
+                        
+                if 'res_ml_b' in st.session_state:
+                    st.markdown(st.session_state['res_ml_b'], unsafe_allow_html=True)
 
 # ------------- PESTAÑA 8 (Backtesting Engine) -------------
 with tab8:
@@ -1049,7 +1082,7 @@ with tab8:
                     roi_simulado = ((win_rate_test / 100) * cuota_promedio_test - 1) * 100
                     color_roi = "#00ff00" if roi_simulado > 0 else "#ff4b4b"
                     
-                st.markdown(f"""
+                st.session_state['res_backtest'] = f"""
                 <div class='glass-card conf-{'alto' if roi_simulado > 0 else 'bajo'}'>
                     <h4 style="color:{color_roi};">Resultados del Backtesting (Engine: Asimétrico de Poisson)</h4>
                     <p><b>Partidos Semejantes Encontrados en BD:</b> {matches_pool}</p>
@@ -1059,9 +1092,12 @@ with tab8:
                     <h3 style="color:{color_roi};">ROI Histórico (Yield Neto): {roi_simulado:.2f}%</h3>
                     <p style="color:#8b949e; font-size:12px;">{'🔥 La estrategia ha demostrado ser rentable empíricamente (Edge Matemático Detectado).' if roi_simulado > 0 else '❌ La distribución Poisson demuestra que esta hipótesis quema capital a la larga. No apostar.'}</p>
                 </div>
-                """, unsafe_allow_html=True)
+                """
             else:
                 st.error("❌ ENERGÍA AGOTADA.")
+                
+        if 'res_backtest' in st.session_state:
+            st.markdown(st.session_state['res_backtest'], unsafe_allow_html=True)
                 
     st.markdown("</div>", unsafe_allow_html=True)
 
