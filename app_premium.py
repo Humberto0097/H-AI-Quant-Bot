@@ -538,7 +538,7 @@ with tab1:
             if not user_input:
                 st.error("⚠️ Inserta el paquete de datos en el servidor primero.")
             else:
-                if use_credit():
+                if use_credit(st.session_state['username']):
                     st.markdown("### 🎯 Score Radar Matrix (1-10)")
                     # Concatenar para inyectar matemática si es futbol
                     data_final = poisson_data + "\nDatos crudos: " + user_input
