@@ -323,6 +323,11 @@ st.markdown("""
         div[data-baseweb="tab"] { flex: 1 1 45%; text-align: center; margin-bottom: 5px; font-size: 0.7rem; padding: 8px 5px; }
         .metric-value { font-size: 1.8rem !important; }
     }
+
+    /* Ocultar elementos de Streamlit (Github, Menu, Footer) */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
