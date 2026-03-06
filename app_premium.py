@@ -55,7 +55,7 @@ def verify_login(username, password):
 # ------------------------------------------------------
 
 # Configuración de página principal
-st.set_page_config(page_title="H AI | Análisis Cuantitativo", page_icon="⚡", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Dark Pool Sports", page_icon="⚡", layout="wide", initial_sidebar_state="expanded")
 
 # Inyección de CSS Avanzado y Glassmorphism para Premium UI
 st.markdown("""
@@ -338,7 +338,7 @@ if "username" not in st.session_state:
     st.session_state["username"] = ""
 
 if not st.session_state["logged_in"]:
-    st.markdown("<h1 class='premium-title' style='margin-top: 50px;'>H AI | ACCESO RESTRINGIDO</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='premium-title' style='margin-top: 50px;'>DARK POOL SPORTS | ACCESO RESTRINGIDO</h1>", unsafe_allow_html=True)
     st.markdown("<p class='subtitle'>PORTAL DE CLIENTES VIP</p>", unsafe_allow_html=True)
     
     colA, colB, colC = st.columns([1,2,1])
@@ -468,13 +468,13 @@ def web_scraper_alineaciones(equipo):
 
 # ================== INTERFAZ GRÁFICA (UI) ==================
 
-st.markdown("<h1 class='premium-title'>H AI | Terminal Cuantitativa</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='premium-title'>DARK POOL SPORTS</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>DETECCIÓN DE SMART MONEY & ARBITRAJE CON IA CUÁNTICA</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 # Menú lateral (Sidebar) elegante
 with st.sidebar:
-    st.markdown("## 🤖 H AI Engine")
+    st.markdown("## 🤖 DARK POOL SPORTS Engine")
     st.markdown("---")
     st.markdown("### 🎛️ Panel de Control")
     st.markdown("Tu agencia personal de datos deportivos, conectada en la nube y alimentada por IA Cuántica.")
@@ -497,15 +497,13 @@ with st.sidebar:
     credit_placeholder.metric("🔋 Créditos de Licencia", f"{get_credits(st.session_state['username'])} Unidades", "- Sistema Activo", delta_color="normal")
 
 # Contenedor central de pestañas
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🤖 Oráculo", 
     "🌐 Escáner Individual", 
     "🔥 Creador Parlays",
     "💸 Arbitraje (Surebets)",
     "📊 Gestión de Capital",
-    "📈 Dashboard ROI",
-    "🧠 Modelo Predictivo (ML)",
-    "⏳ Backtesting"
+    "📈 Dashboard ROI"
 ])
 
 # ------------- PESTAÑA 1 (Análisis Manual + POISSON) -------------
@@ -550,7 +548,7 @@ with tab1:
     with colB:
         user_input = st.text_area("📝 Datos Estructurados del Enfrentamiento:", height=200, placeholder="Pega el texto de cuotas, lesionados o datos aquí...")
         
-        if st.button("🚀 Ejecutar Algoritmo H AI"):
+        if st.button("🚀 Ejecutar Algoritmo"):
             if not user_input:
                 st.error("⚠️ Inserta el paquete de datos en el servidor primero.")
             else:
@@ -760,7 +758,7 @@ with tab4:
                                 msj += f"⚽ <b>Evento:</b> {sb['partido']}\n"
                                 msj += f"💰 <b>Beneficio 100% Seguro:</b> {sb['beneficio']}\n\n"
                                 msj += f"🎯 <b>Movimientos:</b>\n{sb['picks']}\n\n"
-                                msj += f"<i>🤖 H AI Quant Engine - Alerta VIP</i>"
+                                msj += f"<i>🤖 DARK POOL SPORTS - Alerta VIP</i>"
                                 mensajes_telegram.append(msj)
                                 
                             # Enviar a Telegram en background
