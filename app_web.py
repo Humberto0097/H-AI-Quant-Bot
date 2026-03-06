@@ -15,42 +15,27 @@ from google.genai import types
 from dotenv import load_dotenv
 import json
 
-# ------------ SISTEMA DE LICENCIAS/CREDITOS (BD ENCRIPTADA) -----------
-import sqlite3
-import bcrypt
+# ------------ SISTEMA DE LICENCIAS/CREDITOS -----------
+CREDIT_FILE = "licencia.json"
+import json
 
-DB_NAME = "database_segura.db"
+def get_credits(username=None):
+    if not os.path.exists(CREDIT_FILE):
+        with open(CREDIT_FILE, 'w') as f:
+            json.dump({"creditos": 10}, f)
+        return 10
+    with open(CREDIT_FILE, 'r') as f:
+        try:
+            return json.load(f).get("creditos", 0)
+        except:
+            return 0
 
-def get_credits(username):
-    if not os.path.exists(DB_NAME): return 0
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT creditos FROM usuarios WHERE username=?", (username,))
-    row = c.fetchone()
-    conn.close()
-    if row: return row[0]
-    return 0
-
-def use_credit(username, cost=1):
-    c = get_credits(username)
+def use_credit(username=None, cost=1):
+    c = get_credits()
     if c >= cost:
-        conn = sqlite3.connect(DB_NAME)
-        cur = conn.cursor()
-        cur.execute("UPDATE usuarios SET creditos = creditos - ? WHERE username=?", (cost, username))
-        conn.commit()
-        conn.close()
+        with open(CREDIT_FILE, 'w') as f:
+            json.dump({"creditos": c - cost}, f)
         return True
-    return False
-
-def verify_login(username, password):
-    if not os.path.exists(DB_NAME): return False
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT password_hash FROM usuarios WHERE username=?", (username,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        return bcrypt.checkpw(password.encode('utf-8'), row[0].encode('utf-8'))
     return False
 # ------------------------------------------------------
 
@@ -312,17 +297,6 @@ st.markdown("""
         padding-top: 12px;
         color: #cbd5e1;
     }
-    
-    /* Responsive Mobile Design */
-    @media (max-width: 768px) {
-        .premium-title { font-size: 2rem !important; text-shadow: 0 0 10px #0ff; }
-        .subtitle { font-size: 0.8rem !important; letter-spacing: 2px !important; margin-bottom: 25px; }
-        .glass-card { padding: 15px !important; margin-bottom: 15px !important; }
-        .stButton>button { padding: 10px !important; font-size: 0.9rem !important; }
-        div[data-baseweb="tab-list"] { flex-wrap: wrap; gap: 2px; }
-        div[data-baseweb="tab"] { flex: 1 1 45%; text-align: center; margin-bottom: 5px; font-size: 0.7rem; padding: 8px 5px; }
-        .metric-value { font-size: 1.8rem !important; }
-    }
 
     /* Ocultar elementos de Streamlit (Github, Menu, Footer) */
     #MainMenu {visibility: hidden;}
@@ -330,34 +304,6 @@ st.markdown("""
     header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
-
-# --- INICIO DE SESIÓN OBLIGATORIO ---
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
-if "username" not in st.session_state:
-    st.session_state["username"] = ""
-
-if not st.session_state["logged_in"]:
-    st.markdown("<h1 class='premium-title' style='margin-top: 50px;'>DARK POOL SPORTS | ACCESO RESTRINGIDO</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='subtitle'>PORTAL DE CLIENTES VIP</p>", unsafe_allow_html=True)
-    
-    colA, colB, colC = st.columns([1,2,1])
-    with colB:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🔐 Iniciar Sesión")
-        user_input = st.text_input("Usuario (ID Cliente):")
-        pass_input = st.text_input("Contraseña / Llave de Acceso:", type="password")
-        
-        if st.button("🔌 Conectar a Servidores Centrales"):
-            if verify_login(user_input, pass_input):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = user_input
-                st.rerun()
-            else:
-                st.error("❌ Credenciales inválidas. Acceso Denegado.")
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.stop() # Frena la carga de la app si no ha iniciado sesión
-# ------------------------------------
 
 # Inicializar
 load_dotenv()
@@ -487,14 +433,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🪫 Nivel de Energía")
     credit_placeholder = st.empty()
-    
-    st.markdown(f"**Usuario Actual:** {st.session_state['username']}")
-    if st.button("Cerrar Sesión"):
-        st.session_state["logged_in"] = False
-        st.session_state["username"] = ""
-        st.rerun()
-        
-    credit_placeholder.metric("🔋 Créditos de Licencia", f"{get_credits(st.session_state['username'])} Unidades", "- Sistema Activo", delta_color="normal")
 
 # Contenedor central de pestañas
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -502,7 +440,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🌐 Escáner Individual", 
     "🔥 Creador Parlays",
     "💸 Arbitraje (Surebets)",
-    " Dashboard ROI"
+    "📈 Dashboard ROI"
 ])
 
 # ------------- PESTAÑA 1 (Análisis Manual + POISSON) -------------
@@ -551,27 +489,26 @@ with tab1:
             if not user_input:
                 st.error("⚠️ Inserta el paquete de datos en el servidor primero.")
             else:
-                if use_credit(st.session_state['username']):
+                if use_credit():
+                    st.markdown("### 🎯 Score Radar Matrix (1-10)")
                     # Concatenar para inyectar matemática si es futbol
                     data_final = poisson_data + "\nDatos crudos: " + user_input
                     resultado = analyze_ai(data_final, PROMPTS[deporte])
-                    
-                    # Clasificar clase de confianza evaluando la matriz numéricamente (ej. > 8.00)
-                    confianza_clase = "conf-alto" if "SCORE FINAL ORO: 8" in resultado.upper() or "SCORE FINAL ORO: 9" in resultado.upper() or "SCORE FINAL ORO: 10" in resultado.upper() else "conf-medio" if "SCORE FINAL" in resultado.upper() else "conf-bajo"
-                    st.session_state['res_oraculo'] = f"### 🎯 Score Radar Matrix (1-10)\n<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado}</pre></div>"
-                    
-                    # Auto Tracker (Guardar en CSV)
-                    try:
-                        with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
-                            writer = csv.writer(f, delimiter=';')
-                            writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, "Análisis Bot", "Radar Matrix Guardado", "N/A", "Pendiente", "0"])
-                    except Exception:
-                        pass
                 else:
                     st.error("❌ ENERGÍA AGOTADA. Contacte a su proveedor para recargar su licencia para este equipo.")
-                    
-        if 'res_oraculo' in st.session_state:
-            st.markdown(st.session_state['res_oraculo'], unsafe_allow_html=True)
+                    resultado = "❌ LICENCIA VENCIDA. Contacte a su proveedor para adquirir más consultas."
+                
+                # Clasificar clase de confianza evaluando la matriz numéricamente (ej. > 8.00)
+                confianza_clase = "conf-alto" if "SCORE FINAL ORO: 8" in resultado.upper() or "SCORE FINAL ORO: 9" in resultado.upper() or "SCORE FINAL ORO: 10" in resultado.upper() else "conf-medio" if "SCORE FINAL" in resultado.upper() else "conf-bajo"
+                st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado}</pre></div>", unsafe_allow_html=True)
+                
+                # Auto Tracker (Guardar en CSV)
+                try:
+                    with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
+                        writer = csv.writer(f, delimiter=';')
+                        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, "Análisis Bot", "Radar Matrix Guardado", "N/A", "Pendiente", "0"])
+                except Exception:
+                    pass
     st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -582,9 +519,9 @@ with tab1:
         url_scrape = st.text_input("🔗 URL de FootyStats del partido (o nombre del equipo):", placeholder="Ej. https://footystats.org/italy/ssc-napoli-vs-torino...")
     with col_sc2:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("�️ Scrapear Datos Privados"):
+        if st.button("🕷️ Scrapear Datos Privados"):
             if url_scrape:
-                if use_credit(st.session_state['username']):
+                if use_credit():
                     with st.spinner("Desencriptando y extrayendo Big Data..."):
                         if "http" in url_scrape and "footystats" in url_scrape:
                             import requests
@@ -631,30 +568,26 @@ with tab2:
         
         if st.button("📡 Iniciar Triangulación de Mercados"):
             if equipo_buscar:
-                if use_credit(st.session_state['username']):
+                if use_credit():
                     match = buscar_equipo_api(equipo_buscar)
-                    if match:
-                        home = match['home_team']
-                        away = match['away_team']
-                        sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
-                        
-                        input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
-                        resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
-                        
-                        confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
-                        st.session_state['res_radar'] = f"✅ Interceptado en el mercado: {home} vs {away}<br><div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>"
-                    else:
-                        st.session_state['res_radar'] = "⚠️ 📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente."
-                else: # Solo error visual, el debito ya fallo o no paso
-                    st.error("❌ ENERGÍA AGOTADA para el radar global.")
+                if match:
+                    home = match['home_team']
+                    away = match['away_team']
+                    sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
+                    st.success(f"✅ Interceptado en el mercado: {home} vs {away}")
+                    
+                    input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
+                    resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
+                    
+                    confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
+                    st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>", unsafe_allow_html=True)
+                else:
+                    st.warning("📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente.")
             else:
+                # Caso else match ya estaba
                 pass
-                
-        if 'res_radar' in st.session_state:
-            if "Sin resultados" in st.session_state['res_radar']:
-                st.warning(st.session_state['res_radar'].replace("⚠️ ", ""))
-            elif "Interceptado" in st.session_state['res_radar']:
-                st.markdown(st.session_state['res_radar'], unsafe_allow_html=True)
+            if not use_credit(0): # Solo error visual, el debito ya fallo o no paso
+                st.error("❌ ENERGÍA AGOTADA para el radar global.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -673,20 +606,17 @@ with tab3:
         st.info("La IA conectará con los datos de hoy, evaluará las correlaciones lógicas (ej. 'Si Messi anota, el Barcelona probablemente gane') y te estructurará un ticket de apuesta recomendado.")
     
     if st.button("🧬 Generar Ticket Perfecto"):
-        if use_credit(st.session_state['username']):
+        if use_credit():
             prompt_parlay = f"""Rol: Experto en Correlaciones Deportivas.
             Genera un Parlay (Combinada) de 3 selecciones para {parlay_sport} basado en los partidos de HOY. 
             Perfil: {riesgo}.
             Entrega solo el ticket en formato lista, sus cuotas estimadas, y 1 oración de por qué matemáticamente están correlacionados."""
             
             resultado_parlay = analyze_ai(f"Partidos top de hoy en {parlay_sport}", prompt_parlay)
-            st.session_state['res_parlay'] = f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>"
+            st.markdown(f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>", unsafe_allow_html=True)
             st.balloons()
         else:
             st.error("❌ ENERGÍA AGOTADA.")
-            
-    if 'res_parlay' in st.session_state:
-        st.markdown(st.session_state['res_parlay'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------- PESTAÑA 4 (Arbitraje / Surebets) -------------
@@ -699,14 +629,13 @@ with tab4:
         st.warning("⚠️ Requiere tu API Key de The Odds API configurada.")
     else:
         liga_surebet = st.selectbox("Liga a escanear:", ["soccer_epl (Premier League)", "basketball_nba (NBA)", "soccer_spain_la_liga (La Liga)"])
-        filtro_casas = st.text_input("Filtrar por Casas de Apuestas (Opcional, separadas por coma, Ej: Betano, Olimpo, Pinnacle). Deja vacío el cuadro para rastrear todas las casas mundiales:")
         
         if st.button("📡 Buscar Dinero Fácil (Arbitraje)"):
-            if use_credit(st.session_state['username']):
+            if use_credit():
                 with st.spinner('Comparando miles de cuotas entre Bookmakers...'):
                     try:
                         codigo_liga = liga_surebet.split()[0]
-                        res = requests.get(f"https://api.the-odds-api.com/v4/sports/{codigo_liga}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us,uk,au&markets=h2h").json()
+                        res = requests.get(f"https://api.the-odds-api.com/v4/sports/{codigo_liga}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us&markets=h2h").json()
                         
                         surebets_encontradas = []
                         
@@ -724,11 +653,6 @@ with tab4:
                                 mejor_bookie_x = ""
                                 
                                 for bookie in event.get('bookmakers', []):
-                                    if filtro_casas:
-                                        casas_validas = [c.strip().lower() for c in filtro_casas.split(',')]
-                                        if not any(c in bookie['title'].lower() for c in casas_validas):
-                                            continue
-                                            
                                     if bookie['markets']:
                                         outcomes = bookie['markets'][0]['outcomes']
                                         for o in outcomes:
@@ -759,47 +683,21 @@ with tab4:
                                         })
                                         
                         # Mostrar Resultados
-                        html_out = ""
                         if surebets_encontradas:
-                            html_out += f"<h3>🚀 ¡Encontradas {len(surebets_encontradas)} Surebets!</h3>"
-                            
-                            mensajes_telegram = []
+                            st.success(f"🚀 ¡Encontradas {len(surebets_encontradas)} Surebets!")
                             for sb in surebets_encontradas:
-                                html_out += f"""
+                                st.markdown(f"""
                                 <div class='glass-card conf-alto'>
                                     <h4>✅ {sb['partido']} <span style="color:#00ff00;">(Beneficio Seguro: {sb['beneficio']})</span></h4>
                                     <p style="color:#8b949e; margin-bottom: 0;">{sb['picks']}</p>
                                 </div>
-                                """
-                                
-                                # Formatear mensaje ultra-exclusivo para Telegram
-                                msj = f"🚨 <b>SUREBET DETECTADA (ARBITRAJE)</b> 🚨\n\n"
-                                msj += f"⚽ <b>Evento:</b> {sb['partido']}\n"
-                                msj += f"💰 <b>Beneficio 100% Seguro:</b> {sb['beneficio']}\n\n"
-                                msj += f"🎯 <b>Movimientos:</b>\n{sb['picks']}\n\n"
-                                msj += f"<i>🤖 DARK POOL SPORTS - Alerta VIP</i>"
-                                mensajes_telegram.append(msj)
-                                
-                            # Enviar a Telegram en background
-                            try:
-                                import motor_telegram
-                                st.toast("Enviando alertas Push a Telegram VIP...", icon="✈️")
-                                for m in mensajes_telegram:
-                                    motor_telegram.enviar_mensaje_telegram(m)
-                                html_out += "<p style='color:#0ff;'>✅ Alertas VIP enviadas a tu celular exitosamente.</p>"
-                            except Exception as e:
-                                html_out += "<p style='color:#ffaa00;'>⚠️ Surebets encontradas, pero el modulo de Telegram falló o no está configurado.</p>"
+                                """, unsafe_allow_html=True)
                         else:
-                            html_out = "📉 No se encontró ninguna oportunidad de arbitraje del 100% en esta liga por ahora. Las casas de apuestas están alineadas."
-                            
-                        st.session_state['res_surebet'] = html_out
+                            st.info("📉 No se encontró ninguna oportunidad de arbitraje del 100% en esta liga por ahora. Las casas de apuestas están alineadas.")
                     except Exception as e:
                         st.error(f"Error procesando cuotas: {e}")
             else:
                 st.error("❌ ENERGÍA AGOTADA.")
-                
-        if 'res_surebet' in st.session_state:
-            st.markdown(st.session_state['res_surebet'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------- PESTAÑA 5 (Base de Datos Viva y ROI Web Tracker) -------------
@@ -905,7 +803,7 @@ with tab5:
 
 
 # Actualizar el placeholder de créditos al final
-c_restantes = get_credits(st.session_state['username'])
+c_restantes = get_credits()
 color_c = "#00f2fe" if c_restantes > 0 else "#ff0055"
 credit_placeholder.markdown(f"""
     <div style="border: 1px dashed {color_c}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);">
