@@ -493,8 +493,6 @@ with st.sidebar:
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
         st.rerun()
-        
-    credit_placeholder.metric("🔋 Créditos de Licencia", f"{get_credits(st.session_state['username'])} Unidades", "- Sistema Activo", delta_color="normal")
 
 # Contenedor central de pestañas
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -907,11 +905,13 @@ with tab5:
 # Actualizar el placeholder de créditos al final
 c_restantes = get_credits(st.session_state['username'])
 color_c = "#00f2fe" if c_restantes > 0 else "#ff0055"
+
 credit_placeholder.markdown(f"""
     <div style="border: 1px dashed {color_c}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);">
         <h1 style="color: {color_c}; font-family: monospace; font-size: 2rem; margin:0;">{c_restantes} CMD</h1>
         <p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p>
     </div>
 """, unsafe_allow_html=True)
+
 if c_restantes == 0:
     credit_placeholder.error("Requiere recarga de licencia.")
