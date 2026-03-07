@@ -561,33 +561,37 @@ with tab1:
         poisson_data = ""
         if deporte == "Fútbol":
             st.markdown("🎯 **Motor de Probabilidades de Poisson**")
-            xg_home = st.number_input("xG (Goles Esperados) Local", min_value=0.0, value=1.5, step=0.1)
-            xg_away = st.number_input("xG (Goles Esperados) Visitante", min_value=0.0, value=1.1, step=0.1)
+            xg_home = st.number_input("xG (Goles Esperados) Local [Deja en 0 para auto-cálculo de IA]", min_value=0.0, value=0.0, step=0.1)
+            xg_away = st.number_input("xG (Goles Esperados) Visitante [Deja en 0 para auto-cálculo de IA]", min_value=0.0, value=0.0, step=0.1)
             
-            # Cálculo Poisson Básico para victoria local/visitante o empate
-            prob_home = 0
-            prob_away = 0
-            prob_draw = 0
-            for g_h in range(6):
-                for g_a in range(6):
-                    p = ((math.exp(-xg_home) * (xg_home**g_h)) / math.factorial(g_h)) * ((math.exp(-xg_away) * (xg_away**g_a)) / math.factorial(g_a))
-                    if g_h > g_a: prob_home += p
-                    elif g_a > g_h: prob_away += p
-                    else: prob_draw += p
-            
-            p_h_pct = prob_home * 100
-            p_a_pct = prob_away * 100
-            p_d_pct = prob_draw * 100
-            
-            # Cálculo cuotas justas
-            cuota_justa_h = 1/prob_home if prob_home > 0 else 0
-            cuota_justa_a = 1/prob_away if prob_away > 0 else 0
-            
-            st.info(f"📊 **Matemática Pura:**\nLocal {p_h_pct:.1f}% (Cuota Justa: {cuota_justa_h:.2f})\nEmpate {p_d_pct:.1f}%\nVisita {p_a_pct:.1f}% (Cuota Justa: {cuota_justa_a:.2f})")
-            poisson_data = f"El modelo matemático exacto de Poisson le da al Local {p_h_pct:.1f}% de ganar y al Visitante {p_a_pct:.1f}%.\n"
+            if xg_home > 0 and xg_away > 0:
+                # Cálculo Poisson Básico para victoria local/visitante o empate
+                prob_home = 0
+                prob_away = 0
+                prob_draw = 0
+                for g_h in range(6):
+                    for g_a in range(6):
+                        p = ((math.exp(-xg_home) * (xg_home**g_h)) / math.factorial(g_h)) * ((math.exp(-xg_away) * (xg_away**g_a)) / math.factorial(g_a))
+                        if g_h > g_a: prob_home += p
+                        elif g_a > g_h: prob_away += p
+                        else: prob_draw += p
+                
+                p_h_pct = prob_home * 100
+                p_a_pct = prob_away * 100
+                p_d_pct = prob_draw * 100
+                
+                # Cálculo cuotas justas
+                cuota_justa_h = 1/prob_home if prob_home > 0 else 0
+                cuota_justa_a = 1/prob_away if prob_away > 0 else 0
+                
+                st.info(f"📊 **Matemática Pura:**\nLocal {p_h_pct:.1f}% (Cuota Justa: {cuota_justa_h:.2f})\nEmpate {p_d_pct:.1f}%\nVisita {p_a_pct:.1f}% (Cuota Justa: {cuota_justa_a:.2f})")
+                poisson_data = f"El modelo matemático exacto de Poisson le da al Local {p_h_pct:.1f}% de ganar y al Visitante {p_a_pct:.1f}%.\n"
+            else:
+                st.info("🤖 **Modo Automático:** La IA buscará en la base de datos y calculará el xG y el Poisson por ti basándose en tu equipo o enlace.")
+                poisson_data = "El usuario no proporcionó el xG. Debes leer el texto adjunto, inferir el poder ofensivo de ambos equipos automáticamente, y proyectar tú mismo quién ganará basándote en la data."
 
     with colB:
-        user_input = st.text_area("📝 Datos Estructurados del Enfrentamiento:", height=200, placeholder="Pega el texto de cuotas, lesionados o datos aquí...")
+        user_input = st.text_area("📝 Datos Estructurados del Enfrentamiento:", height=200, placeholder="Pega el texto de cuotas, url del partido, o solo los nombres de los equipos...")
         
         if st.button("🚀 Ejecutar Algoritmo"):
             if not user_input:
@@ -595,7 +599,7 @@ with tab1:
             else:
                 if use_credit(st.session_state['username']):
                     # Concatenar para inyectar matemática si es futbol
-                    data_final = poisson_data + "\nDatos crudos: " + user_input
+                    data_final = poisson_data + "\nDatos crudos para procesar: " + user_input
                     resultado = analyze_ai(data_final, PROMPTS[deporte])
                     
                     # Clasificar clase de confianza evaluando la matriz numéricamente (ej. > 8.00)
