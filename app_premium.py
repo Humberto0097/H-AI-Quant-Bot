@@ -362,6 +362,8 @@ if not st.session_state["logged_in"]:
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+ALLSPORTS_API_KEY = os.getenv("ALLSPORTS_API_KEY")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 
 if not API_KEY or API_KEY == "tu_api_key_de_google_aqui":
     st.error("Error Crítico: No se encontró tu GEMINI_API_KEY en el archivo '.env'")
@@ -463,6 +465,47 @@ def web_scraper_alineaciones(equipo):
         except Exception as e:
             return f"Error leyendo Google: {e}"
 
+def get_allsports_info(equipo):
+    if not ALLSPORTS_API_KEY or ALLSPORTS_API_KEY == "tu_allsports_api_key_aqui":
+        return ""
+    try:
+        url = f"https://apiv2.allsportsapi.com/football/?met=Teams&teamName={equipo}&APIkey={ALLSPORTS_API_KEY}"
+        res = requests.get(url, timeout=5).json()
+        if res.get("result"):
+            team = res["result"][0]
+            return f"[AllSportsAPI] Datos {equipo}: Estadio: {team.get('team_stadium', 'N/A')}, Coach: {team.get('coaches', [{'coach_name': 'N/A'}])[0].get('coach_name', 'N/A')}."
+    except:
+        pass
+    return ""
+
+def get_rapidapi_info(equipo):
+    if not RAPIDAPI_KEY or RAPIDAPI_KEY == "tu_rapidapi_key_aqui":
+        return ""
+    try:
+        # Usamos API-Football, que es la más popular de deportes en RapidAPI
+        url = "https://api-football-v1.p.rapidapi.com/v3/teams"
+        querystring = {"search": equipo}
+        headers = {
+            "X-RapidAPI-Key": RAPIDAPI_KEY,
+            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        }
+        res = requests.get(url, headers=headers, params=querystring, timeout=5).json()
+        if res.get("response") and len(res["response"]) > 0:
+            team_info = res["response"][0]["team"]
+            venue_info = res["response"][0]["venue"]
+            return f"[RapidAPI] Info {team_info.get('name')}: País: {team_info.get('country')}, Fundado: {team_info.get('founded')}, Estadio: {venue_info.get('name')} (Capacidad: {venue_info.get('capacity')})."
+    except:
+        pass
+    return ""
+
+def recolectar_datos_extra_apis(equipo):
+    extra = []
+    allsports = get_allsports_info(equipo)
+    if allsports: extra.append(allsports)
+    rapid = get_rapidapi_info(equipo)
+    if rapid: extra.append(rapid)
+    return " | ".join(extra) if extra else ""
+
 
 
 # ================== INTERFAZ GRÁFICA (UI) ==================
@@ -482,6 +525,8 @@ with st.sidebar:
     st.markdown("💡 **Status del Sistema:**")
     st.markdown("🟢 Red Neuronal (LLM): **Online**")
     st.markdown(f"{'🟢' if ODDS_API_KEY else '🔴'} The Odds API: **{'Online' if ODDS_API_KEY else 'Offline'}**")
+    st.markdown(f"{'🟢' if ALLSPORTS_API_KEY else '🔴'} AllSportsAPI: **{'Online' if ALLSPORTS_API_KEY else 'Offline'}**")
+    st.markdown(f"{'🟢' if RAPIDAPI_KEY else '🔴'} RapidAPI: **{'Online' if RAPIDAPI_KEY else 'Offline'}**")
     
     st.markdown("---")
     st.markdown("### 🪫 Nivel de Energía")
@@ -603,6 +648,9 @@ with tab1:
                         else:
                             st.info("Buscando como equipo regular en la web...")
                             resultado_scrape = web_scraper_alineaciones(url_scrape)
+                            extra_api_data = recolectar_datos_extra_apis(url_scrape)
+                            if extra_api_data:
+                                resultado_scrape += f"\n\n📊 Datos Adicionales (AllSports/RapidAPI):\n{extra_api_data}"
                             st.session_state['res_scraper'] = resultado_scrape
                 else:
                     st.error("❌ ENERGÍA AGOTADA. Adquiere una recarga de la terminal.")
@@ -635,7 +683,11 @@ with tab2:
                         away = match['away_team']
                         sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
                         
-                        input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
+                        extra_info = ""
+                        if ALLSPORTS_API_KEY or RAPIDAPI_KEY:
+                            extra_info = f"\n📦 Base extra AllSports/RapidAPI:\n- {recolectar_datos_extra_apis(home)}\n- {recolectar_datos_extra_apis(away)}\n"
+                        
+                        input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).{extra_info}\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
                         resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
                         
                         confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
