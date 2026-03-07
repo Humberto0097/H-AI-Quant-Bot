@@ -360,7 +360,7 @@ if not st.session_state["logged_in"]:
                     
         with tab_register:
             st.subheader("Solicitar Acceso Gratuito")
-            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>5 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
             new_user = st.text_input("Crear Usuario Nuevo:", key="new_user")
             new_pass = st.text_input("Crear Contraseña:", type="password", key="new_pass")
             
@@ -380,9 +380,9 @@ if not st.session_state["logged_in"]:
                     hash_pw = bcrypt.hashpw(new_pass.encode('utf-8'), salt)
                     try:
                         cursor.execute("INSERT INTO usuarios (username, password_hash, creditos) VALUES (?, ?, ?)", 
-                                       (new_user, hash_pw.decode('utf-8'), 5))
+                                       (new_user, hash_pw.decode('utf-8'), 3))
                         conn.commit()
-                        st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada con 5 créditos. Ahora ve a la pestaña 'Iniciar Sesión'.")
+                        st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada con 3 créditos. Ahora ve a la pestaña 'Iniciar Sesión'.")
                     except sqlite3.IntegrityError:
                         st.error(f"❌ Error: El usuario '{new_user}' ya existe.")
                     finally:
