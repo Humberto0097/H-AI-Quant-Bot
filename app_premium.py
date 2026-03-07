@@ -343,17 +343,52 @@ if not st.session_state["logged_in"]:
     colA, colB, colC = st.columns([1,2,1])
     with colB:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.subheader("🔐 Iniciar Sesión")
-        user_input = st.text_input("Usuario (ID Cliente):")
-        pass_input = st.text_input("Contraseña / Llave de Acceso:", type="password")
+        tab_login, tab_register = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse (Prueba)"])
         
-        if st.button("🔌 Conectar a Servidores Centrales"):
-            if verify_login(user_input, pass_input):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = user_input
-                st.rerun()
-            else:
-                st.error("❌ Credenciales inválidas. Acceso Denegado.")
+        with tab_login:
+            st.subheader("Ingreso de Clientes VIP")
+            user_input = st.text_input("Usuario (ID Cliente):")
+            pass_input = st.text_input("Contraseña / Llave de Acceso:", type="password")
+            
+            if st.button("🔌 Conectar a Servidores Centrales"):
+                if verify_login(user_input, pass_input):
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = user_input
+                    st.rerun()
+                else:
+                    st.error("❌ Credenciales inválidas. Acceso Denegado.")
+                    
+        with tab_register:
+            st.subheader("Solicitar Acceso Gratuito")
+            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>5 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
+            new_user = st.text_input("Crear Usuario Nuevo:", key="new_user")
+            new_pass = st.text_input("Crear Contraseña:", type="password", key="new_pass")
+            
+            if st.button("🚀 Crear Cuenta de Prueba"):
+                if new_user and new_pass:
+                    import sqlite3
+                    import bcrypt
+                    conn = sqlite3.connect(DB_NAME)
+                    cursor = conn.cursor()
+                    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                username TEXT UNIQUE NOT NULL,
+                                password_hash TEXT NOT NULL,
+                                creditos INTEGER NOT NULL
+                            )''')
+                    salt = bcrypt.gensalt()
+                    hash_pw = bcrypt.hashpw(new_pass.encode('utf-8'), salt)
+                    try:
+                        cursor.execute("INSERT INTO usuarios (username, password_hash, creditos) VALUES (?, ?, ?)", 
+                                       (new_user, hash_pw.decode('utf-8'), 5))
+                        conn.commit()
+                        st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada con 5 créditos. Ahora ve a la pestaña 'Iniciar Sesión'.")
+                    except sqlite3.IntegrityError:
+                        st.error(f"❌ Error: El usuario '{new_user}' ya existe.")
+                    finally:
+                        conn.close()
+                else:
+                    st.warning("⚠️ Debes completar ambos campos.")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop() # Frena la carga de la app si no ha iniciado sesión
 # ------------------------------------
