@@ -723,12 +723,19 @@ with tab3:
     
     if st.button("🧬 Generar Ticket Perfecto"):
         if use_credit(st.session_state['username']):
+            from datetime import datetime
+            fecha_actual = datetime.now().strftime("%Y-%m-%d")
+            
             prompt_parlay = f"""Rol: Experto en Correlaciones Deportivas.
-            Genera un Parlay (Combinada) de 3 selecciones para {parlay_sport} basado en los partidos de HOY. 
+            REGLA DE ORO INQUEBRANTABLE: Hoy es exactamente {fecha_actual}. 
+            Busca en internet los partidos programados EXCLUSIVAMENTE para ESTA fecha ({fecha_actual}) o fechas futuras cercanas.
+            BAJO NINGÚN MOTIVO incluyas partidos que ya se jugaron ayer o en meses pasados.
+            
+            Genera un Parlay (Combinada) de 3 selecciones reales para {parlay_sport} basado estrictamente en juegos a disputarse hoy o mañana. 
             Perfil: {riesgo}.
             Entrega solo el ticket en formato lista, sus cuotas estimadas, y 1 oración de por qué matemáticamente están correlacionados."""
             
-            resultado_parlay = analyze_ai(f"Partidos top de hoy en {parlay_sport}", prompt_parlay)
+            resultado_parlay = analyze_ai(f"Partidos calendario exacto hoy {fecha_actual} en {parlay_sport}", prompt_parlay)
             st.session_state['res_parlay'] = f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>"
             st.balloons()
         else:
