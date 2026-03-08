@@ -360,35 +360,73 @@ if not st.session_state["logged_in"]:
                     
         with tab_register:
             st.subheader("Solicitar Acceso Gratuito")
-            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b>.<br>⚠️ <i>Por seguridad, solo se permite 1 cuenta por dispositivo/red.</i></p>", unsafe_allow_html=True)
             new_user = st.text_input("Crear Usuario Nuevo:", key="new_user")
             new_pass = st.text_input("Crear Contraseña:", type="password", key="new_pass")
             
-            if st.button("🚀 Crear Cuenta de Prueba"):
+            if st.button("🚀 Crear Cuenta Única"):
                 if new_user and new_pass:
                     import sqlite3
                     import bcrypt
+                    
+                    # Intentar obtener la IP del cliente (funciona en servidores web desplegados)
+                    client_ip = "local_network"
+                    try:
+                        if hasattr(st, "context") and hasattr(st.context, "headers"):
+                            client_ip = st.context.headers.get("X-Forwarded-For", "local_network").split(",")[0].strip()
+                        else:
+                            from streamlit.web.server.websocket_headers import _get_websocket_headers
+                            headers = _get_websocket_headers()
+                            if headers and "X-Forwarded-For" in headers:
+                                client_ip = headers["X-Forwarded-For"].split(",")[0].strip()
+                    except:
+                        pass
+                        
                     conn = sqlite3.connect(DB_NAME)
                     cursor = conn.cursor()
+                    
+                    # Crear tabla de usuarios si no existe
                     cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 username TEXT UNIQUE NOT NULL,
                                 password_hash TEXT NOT NULL,
                                 creditos INTEGER NOT NULL
                             )''')
+                    
+                    # Crear tabla de control de spam de IPs
+                    cursor.execute('''CREATE TABLE IF NOT EXISTS registro_ips (
+                                ip TEXT UNIQUE NOT NULL,
+                                fecha_registro TEXT NOT NULL
+                            )''')
+                            
+                    # Verificar si la IP ya existe (si no es red local en pruebas)
+                    if client_ip != "local_network" and client_ip != "127.0.0.1":
+                        cursor.execute("SELECT ip FROM registro_ips WHERE ip=?", (client_ip,))
+                        if cursor.fetchone():
+                            st.error("⛔ SISTEMA ANTI-SPAM: Ya se ha creado una cuenta recientemente desde esta red/dispositivo. No puedes crear otra.")
+                            conn.close()
+                            st.stop()
+                    
                     salt = bcrypt.gensalt()
                     hash_pw = bcrypt.hashpw(new_pass.encode('utf-8'), salt)
+                    
                     try:
+                        # Registrar IP
+                        if client_ip != "local_network" and client_ip != "127.0.0.1":
+                            from datetime import datetime
+                            cursor.execute("INSERT INTO registro_ips (ip, fecha_registro) VALUES (?, ?)", (client_ip, str(datetime.now())))
+                            
+                        # Crear usuario
                         cursor.execute("INSERT INTO usuarios (username, password_hash, creditos) VALUES (?, ?, ?)", 
                                        (new_user, hash_pw.decode('utf-8'), 3))
                         conn.commit()
                         st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada con 3 créditos. Ahora ve a la pestaña 'Iniciar Sesión'.")
                     except sqlite3.IntegrityError:
-                        st.error(f"❌ Error: El usuario '{new_user}' ya existe.")
+                        st.error(f"❌ Error: El usuario o la IP utilizada ya existen en nuestros registros.")
                     finally:
                         conn.close()
                 else:
-                    st.warning("⚠️ Debes completar ambos campos.")
+                    st.warning("⚠️ Debes completar todos los campos.")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop() # Frena la carga de la app si no ha iniciado sesión
 # ------------------------------------
