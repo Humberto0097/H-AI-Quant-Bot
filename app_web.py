@@ -301,9 +301,7 @@ st.markdown("""
     /* Ocultar elementos de Streamlit (Github, Menu, Footer) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    [data-testid="stHeader"] {background: rgba(0,0,0,0); border:none;}
     .stAppDeployButton {display:none;}
-    [data-testid="stToolbar"] {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
