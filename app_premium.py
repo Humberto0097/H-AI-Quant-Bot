@@ -813,7 +813,7 @@ with tab3:
     
     if st.button("🧬 Generar Ticket Perfecto"):
         if use_credit(st.session_state['username']):
-                    update_credits_ui()
+            update_credits_ui()
             from datetime import datetime
             fecha_actual = datetime.now().strftime("%Y-%m-%d")
             
@@ -850,7 +850,7 @@ with tab4:
         
         if st.button("📡 Buscar Dinero Fácil (Arbitraje)"):
             if use_credit(st.session_state['username']):
-                    update_credits_ui()
+                update_credits_ui()
                 with st.spinner('Comparando miles de cuotas entre Bookmakers...'):
                     try:
                         codigo_liga = liga_surebet.split()[0]
