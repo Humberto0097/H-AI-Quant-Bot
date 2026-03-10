@@ -466,7 +466,23 @@ Regla Estricta: Entregame un Radar Predictivo de Props del 1 al 10.
 Formato OBLIGATORIO:
 [Minutos Estimados: X/10] - [Usage Rate: X/10] - [Emparejamiento Defensivo: X/10]
 SCORE FINAL ORO: X.XX (Solo apuestas si > 8.00).
-Debajo del radar da tu Pick exacto y 1 oración justificativa."""
+Debajo del radar da tu Pick exacto y 1 oración justificativa.""",
+
+    "Stats_Futbol": """Rol: Analista de Micro-Estadísticas (Fútbol).
+Regla Estricta: Debes analizar específicamente: Tiros al arco, Corners, Tarjetas Amarillas y Goles.
+Entregame un Radar del 1 al 10 para cada categoría.
+Formato OBLIGATORIO:
+[Prob. Tiros Arco: X/10] - [Prob. Corners: X/10] - [Prob. Tarjetas: X/10] - [Prob. Goles: X/10]
+SCORE DE VOLATILIDAD: X.XX
+Debajo da tu recomendación específica para Over/Under en cada apartado basado en la data.""",
+
+    "Stats_Basket": """Rol: Analista de Micro-Estadísticas (NBA/Basketball).
+Regla Estricta: Debes analizar específicamente: Rebotes totales, Puntos del equipo (Team Totals) y Asistencias.
+Entregame un Radar del 1 al 10 para cada categoría.
+Formato OBLIGATORIO:
+[Prob. Rebotes: X/10] - [Prob. Puntos Team: X/10] - [Prob. Asistencias: X/10]
+SCORE DE VOLATILIDAD: X.XX
+Debajo da tu recomendación específica para Over/Under en cada apartado basado en la data."""
 }
 
 def analyze_ai(match_data, prompt_text):
@@ -622,8 +638,9 @@ with st.sidebar:
         st.rerun()
 
 # Contenedor central de pestañas
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab_stats, tab2, tab3, tab4, tab5 = st.tabs([
     "🤖 Oráculo", 
+    "📈 Stats Avanzadas",
     "🌐 Escáner Individual", 
     "🔥 Creador Parlays",
     "💸 Arbitraje (Surebets)",
@@ -749,6 +766,38 @@ with tab1:
         if 'res_scraper' in st.session_state:
             st.success("✅ ¡Datos extraídos con éxito! Cópialos y pégalos en la caja de 'Datos Estructurados' arriba.")
             st.code(st.session_state['res_scraper'], language=None)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ------------- PESTAÑA NUEVA (Estadísticas Avanzadas) -------------
+with tab_stats:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("📊 Radar de Micro-Estadísticas (Props & Totals)")
+    st.markdown("""<details class="cyber-manual"><summary>MANUAL DE OPERACIÓN: STATS RADAR</summary><p><b>Función:</b> Análisis profundo de mercados secundarios: corners, tarjetas, tiros, rebotes y puntos por equipo.<br><b>Uso:</b> Selecciona el deporte y pega los nombres de los equipos o el enlace del partido. La IA buscará promedios históricos y tendencias recientes para darte el Radar de Probabilidad.</p></details>""", unsafe_allow_html=True)
+    
+    colS1, colS2 = st.columns([1, 2])
+    with colS1:
+        tipo_stats = st.radio("Módulo de Análisis:", ["Fútbol (Tiros/Corners/Cards)", "Basket (Rebotes/Puntos Team)"])
+        st.info("💡 Este módulo ignora el xG general y se enfoca en el comportamiento volátil del juego.")
+    
+    with colS2:
+        input_stats = st.text_area("📦 Datos/Equipos a Analizar (Stats):", placeholder="Ej: Real Madrid vs City - Analizar corners y tarjetas...")
+        
+        if st.button("📡 Escanear Micro-Tendencias"):
+            if not input_stats:
+                st.error("⚠️ Indica equipos para el escaneo.")
+            else:
+                if use_credit(st.session_state['username']):
+                    update_credits_ui()
+                    prompt_key = "Stats_Futbol" if "Fútbol" in tipo_stats else "Stats_Basket"
+                    with st.spinner("Calculando desviaciones estándar y promedios..."):
+                        res_stats = analyze_ai(input_stats, PROMPTS[prompt_key])
+                        st.session_state['res_stats_radar'] = f"### 📊 Resultado Micro-Stats\n<div class='glass-card conf-medio'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{res_stats}</pre></div>"
+                else:
+                    st.error("❌ ENERGÍA AGOTADA.")
+
+        if 'res_stats_radar' in st.session_state:
+            st.markdown(st.session_state['res_stats_radar'], unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
