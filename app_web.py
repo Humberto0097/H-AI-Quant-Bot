@@ -434,7 +434,7 @@ with st.sidebar:
     credit_placeholder = st.empty()
     
     def update_credits_ui():
-        c_r = get_credits(st.session_state['username'])
+        c_r = get_credits()
         col = "#00f2fe" if c_r > 0 else "#ff0055"
         v_h = f'<div style="border: 1px dashed {col}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);"><h1 style="color: {col}; font-family: monospace; font-size: 2rem; margin:0;">{c_r} CMD</h1><p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p></div>'
         credit_placeholder.markdown(v_h, unsafe_allow_html=True)
@@ -583,24 +583,21 @@ with tab2:
             if equipo_buscar:
                 if use_credit():
                     match = buscar_equipo_api(equipo_buscar)
-                if match:
-                    home = match['home_team']
-                    away = match['away_team']
-                    sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
-                    st.success(f"✅ Interceptado en el mercado: {home} vs {away}")
-                    
-                    input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
-                    resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
-                    
-                    confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
-                    st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>", unsafe_allow_html=True)
+                    if match:
+                        home = match['home_team']
+                        away = match['away_team']
+                        sport = "Básquetbol" if "basketball" in match['sport_key'] else "Fútbol"
+                        st.success(f"✅ Interceptado en el mercado: {home} vs {away}")
+                        
+                        input_para_ia = f"Deporte: {sport}\nEquipos: {home} (L) vs {away} (V).\nBusca su información actual del mercado, bajas importantes, su historial H2H reciente y dime tu predicción en tu formato."
+                        resultado_api = analyze_ai(input_para_ia, PROMPTS[sport])
+                        
+                        confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
+                        st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>", unsafe_allow_html=True)
+                    else:
+                        st.warning("📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente.")
                 else:
-                    st.warning("📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente.")
-            else:
-                # Caso else match ya estaba
-                pass
-            if not use_credit(0): # Solo error visual, el debito ya fallo o no paso
-                st.error("❌ ENERGÍA AGOTADA para el radar global.")
+                    st.error("❌ ENERGÍA AGOTADA para el radar global.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
