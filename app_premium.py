@@ -327,6 +327,8 @@ st.markdown("""
     /* Ocultar elementos de Streamlit (Github, Menu, Footer) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppDeployButton {display:none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -605,7 +607,8 @@ st.markdown("---")
 
 # Menú lateral (Sidebar) elegante
 with st.sidebar:
-    st.markdown("## 🤖 DARK POOL SPORTS Engine")
+    st.markdown("## 🤖 DARK POOL SPORTS")
+    st.markdown("<p style='font-size: 0.8rem; color: #00f2fe; margin-top: -15px;'>By Humberto1997</p>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 🎛️ Panel de Control")
     st.markdown("Tu agencia personal de datos deportivos, conectada en la nube y alimentada por IA Cuántica.")
