@@ -432,6 +432,16 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🪫 Nivel de Energía")
     credit_placeholder = st.empty()
+    
+    def update_credits_ui():
+        c_r = get_credits(st.session_state['username'])
+        col = "#00f2fe" if c_r > 0 else "#ff0055"
+        v_h = f'<div style="border: 1px dashed {col}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);"><h1 style="color: {col}; font-family: monospace; font-size: 2rem; margin:0;">{c_r} CMD</h1><p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p></div>'
+        credit_placeholder.markdown(v_h, unsafe_allow_html=True)
+        if c_r == 0:
+            credit_placeholder.error("Requiere recarga de licencia.")
+
+    update_credits_ui()
 
 # Contenedor central de pestañas
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -730,7 +740,7 @@ with tab5:
     # Editor interactivo de base de datos
     df_editado = st.data_editor(
         df_bd, 
-        use_container_width=True, 
+        width="stretch", 
         num_rows="dynamic",
         column_config={
             "Ganancia_y_Perdida": st.column_config.NumberColumn(
@@ -794,7 +804,7 @@ with tab5:
             hovertemplate="Operación N° <b>%{x}</b><br>Capital Tras Impacto: <b>$%{y:.2f}</b><extra></extra>"
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("Ingresa al menos 1 resultado con Ganancia en tu tabla para observar la matriz de crecimiento.")
         
@@ -805,16 +815,4 @@ with tab5:
 
 
 
-# Actualizar el placeholder de créditos al final
-c_restantes = get_credits()
-color_c = "#00f2fe" if c_restantes > 0 else "#ff0055"
 
-credit_placeholder.markdown(f"""
-    <div style="border: 1px dashed {color_c}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);">
-        <h1 style="color: {color_c}; font-family: monospace; font-size: 2rem; margin:0;">{c_restantes} CMD</h1>
-        <p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p>
-    </div>
-""", unsafe_allow_html=True)
-
-if c_restantes == 0:
-    credit_placeholder.error("Requiere recarga de licencia.")

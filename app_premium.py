@@ -360,11 +360,11 @@ if not st.session_state["logged_in"]:
                     
         with tab_register:
             st.subheader("Solicitar Acceso Gratuito")
-            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b>.<br>⚠️ <i>Por seguridad, solo se permite 1 cuenta por dispositivo/red.</i></p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
             new_user = st.text_input("Crear Usuario Nuevo:", key="new_user")
             new_pass = st.text_input("Crear Contraseña:", type="password", key="new_pass")
             
-            if st.button("🚀 Crear Cuenta Única"):
+            if st.button("🚀 Crear Cuenta de Prueba"):
                 if new_user and new_pass:
                     import sqlite3
                     import bcrypt
@@ -605,6 +605,16 @@ with st.sidebar:
     st.markdown("### 🪫 Nivel de Energía")
     credit_placeholder = st.empty()
     
+    def update_credits_ui():
+        c_r = get_credits(st.session_state['username'])
+        col = "#00f2fe" if c_r > 0 else "#ff0055"
+        v_h = f'<div style="border: 1px dashed {col}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);"><h1 style="color: {col}; font-family: monospace; font-size: 2rem; margin:0;">{c_r} CMD</h1><p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p></div>'
+        credit_placeholder.markdown(v_h, unsafe_allow_html=True)
+        if c_r == 0:
+            credit_placeholder.error("Requiere recarga de licencia.")
+
+    update_credits_ui()
+    
     st.markdown(f"**Usuario Actual:** {st.session_state['username']}")
     if st.button("Cerrar Sesión"):
         st.session_state["logged_in"] = False
@@ -671,6 +681,7 @@ with tab1:
                 st.error("⚠️ Inserta el paquete de datos en el servidor primero.")
             else:
                 if use_credit(st.session_state['username']):
+                    update_credits_ui()
                     # Concatenar para inyectar matemática si es futbol
                     data_final = poisson_data + "\nDatos crudos para procesar: " + user_input
                     resultado = analyze_ai(data_final, PROMPTS[deporte])
@@ -704,6 +715,7 @@ with tab1:
         if st.button("�️ Scrapear Datos Privados"):
             if url_scrape:
                 if use_credit(st.session_state['username']):
+                    update_credits_ui()
                     with st.spinner("Desencriptando y extrayendo Big Data..."):
                         if "http" in url_scrape and "footystats" in url_scrape:
                             import requests
@@ -754,6 +766,7 @@ with tab2:
         if st.button("📡 Iniciar Triangulación de Mercados"):
             if equipo_buscar:
                 if use_credit(st.session_state['username']):
+                    update_credits_ui()
                     match = buscar_equipo_api(equipo_buscar)
                     if match:
                         home = match['home_team']
@@ -800,6 +813,7 @@ with tab3:
     
     if st.button("🧬 Generar Ticket Perfecto"):
         if use_credit(st.session_state['username']):
+                    update_credits_ui()
             from datetime import datetime
             fecha_actual = datetime.now().strftime("%Y-%m-%d")
             
@@ -836,6 +850,7 @@ with tab4:
         
         if st.button("📡 Buscar Dinero Fácil (Arbitraje)"):
             if use_credit(st.session_state['username']):
+                    update_credits_ui()
                 with st.spinner('Comparando miles de cuotas entre Bookmakers...'):
                     try:
                         codigo_liga = liga_surebet.split()[0]
@@ -962,7 +977,7 @@ with tab5:
     # Editor interactivo de base de datos
     df_editado = st.data_editor(
         df_bd, 
-        use_container_width=True, 
+        width="stretch", 
         num_rows="dynamic",
         column_config={
             "Ganancia_y_Perdida": st.column_config.NumberColumn(
@@ -1026,7 +1041,7 @@ with tab5:
             hovertemplate="Operación N° <b>%{x}</b><br>Capital Tras Impacto: <b>$%{y:.2f}</b><extra></extra>"
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("Ingresa al menos 1 resultado con Ganancia en tu tabla para observar la matriz de crecimiento.")
         
@@ -1037,16 +1052,4 @@ with tab5:
 
 
 
-# Actualizar el placeholder de créditos al final
-c_restantes = get_credits(st.session_state['username'])
-color_c = "#00f2fe" if c_restantes > 0 else "#ff0055"
 
-credit_placeholder.markdown(f"""
-    <div style="border: 1px dashed {color_c}; border-radius: 4px; padding: 15px; text-align: center; background: rgba(0,0,0,0.5);">
-        <h1 style="color: {color_c}; font-family: monospace; font-size: 2rem; margin:0;">{c_restantes} CMD</h1>
-        <p style="color: #94a3b8; font-size: 0.8rem; margin:0;">Consultas Disponibles</p>
-    </div>
-""", unsafe_allow_html=True)
-
-if c_restantes == 0:
-    credit_placeholder.error("Requiere recarga de licencia.")
