@@ -319,49 +319,60 @@ client = genai.Client(api_key=API_KEY)
 
 # Prompts Puntuación Matrix
 PROMPTS = {
-    "Fútbol": """Rol: Quant de Fondo de Inversión Deportivo (Fútbol).
-Regla Estricta: Entregame un Sistema de Puntuación Matrix (Radar Estadístico del 1 al 10).
+    "Fútbol": """Rol: Analista Cuantitativo de Élite Deportivo (Fútbol).
+Regla Estricta: Entregame un Sistema de Puntuación Matrix tras un riguroso paso a paso analítico.
 Formato OBLIGATORIO:
+[Paso 1: Análisis de Lesiones y Bajas. ¿Quién falta y cómo afecta?]
+[Paso 2: Motivación, Desgaste Físico y Clima/Viaje]
+[Paso 3: Value/Smart Money (Compara cuotas vs Probabilidad Real Calculada)]
 [Motivación: X/10] - [Clima/Viaje: X/10] - [Lesiones Clave: X/10] - [Smart Money: X/10]
 SCORE FINAL ORO: X.XX (Solo apuestas si > 8.00).
-Debajo del radar da tu Pick exacto y 1 oración de justificación analítica. ¡Nada de saludos!""",
+Debajo del radar da tu Pick exacto y 2 oraciones de justificación analítica del Edge. ¡Nada de saludos!""",
     
     "Básquetbol": """Rol: Analista Quant de Básquetbol de Wall Street.
-Regla Estricta: Entregame un Sistema de Puntuación Matrix basado en Eficiencia (Rating) (1 al 10).
+Regla Estricta: Entregame un Sistema de Puntuación Matrix basado en Eficiencia (Rating) (1 al 10). Haz un análisis de Chain-of-Thought previo.
 Formato OBLIGATORIO:
+[Paso 1: Matchup Ratings y Ventajas de Posición]
+[Paso 2: Profundidad de la Banca y Fatiga/Back-to-back]
+[Paso 3: Tendencia del O/U y Smart Money]
 [Pace (Ritmo): X/10] - [Ventaja Matchup: X/10] - [Lesiones Clave: X/10] - [Smart Money: X/10]
 SCORE FINAL ORO: X.XX (Solo apuestas si > 8.00).
-Debajo del radar da tu Pick exacto y 1 oración de justificación analítica.""",
+Debajo del radar da tu Pick exacto y 2 oraciones de justificación analítica del Edge.""",
     
-    "Jugadores (Props)": """Rol: Scout de Élite.
-Regla Estricta: Entregame un Radar Predictivo de Props del 1 al 10.
+    "Jugadores (Props)": """Rol: Scout Específico de Élite.
+Regla Estricta: Entregame un Radar Predictivo de Props del 1 al 10 con análisis profundo previo.
 Formato OBLIGATORIO:
+[Paso 1: Minutos Proyectados por faltas/blowouts]
+[Paso 2: Usage Rate sin X Jugador en cancha]
+[Paso 3: Matchup Defensivo del rival en esa posición]
 [Minutos Estimados: X/10] - [Usage Rate: X/10] - [Emparejamiento Defensivo: X/10]
 SCORE FINAL ORO: X.XX (Solo apuestas si > 8.00).
-Debajo del radar da tu Pick exacto y 1 oración justificativa.""",
+Debajo del radar da tu Pick exacto (Over/Under) y justificación rigurosa.""",
 
     "Stats_Futbol": """Rol: Analista de Micro-Estadísticas (Fútbol).
-Regla Estricta: Debes analizar específicamente: Tiros al arco, Corners, Tarjetas Amarillas y Goles.
-Entregame un Radar del 1 al 10 para cada categoría.
+Regla Estricta: Analiza específicamente: Tiros al arco, Corners, Tarjetas Amarillas y Goles. Haz un análisis estadístico de medias antes.
 Formato OBLIGATORIO:
+[Paso 1: Promedios de Corners y Tarjetas del árbitro designado]
+[Paso 2: Estilos de Juego (Posesión vs Contraataque)]
 [Prob. Tiros Arco: X/10] - [Prob. Corners: X/10] - [Prob. Tarjetas: X/10] - [Prob. Goles: X/10]
 SCORE DE VOLATILIDAD: X.XX
-Debajo da tu recomendación específica para Over/Under en cada apartado basado en la data.""",
+Debajo da tu recomendación específica para Over/Under en cada apartado justificando la Varianza matemática.""",
 
     "Stats_Basket": """Rol: Analista de Micro-Estadísticas (NBA/Basketball).
-Regla Estricta: Debes analizar específicamente: Rebotes totales, Puntos del equipo (Team Totals) y Asistencias.
-Entregame un Radar del 1 al 10 para cada categoría.
+Regla Estricta: Analiza específicamente: Rebotes totales, Puntos del equipo (Team Totals) y Asistencias. Valida tendencias recientes.
 Formato OBLIGATORIO:
+[Paso 1: Pace del partido e impacto en posesiones totales]
+[Paso 2: Eficiencia defensiva vs Asistencias/Rebotes]
 [Prob. Rebotes: X/10] - [Prob. Puntos Team: X/10] - [Prob. Asistencias: X/10]
 SCORE DE VOLATILIDAD: X.XX
-Debajo da tu recomendación específica para Over/Under en cada apartado basado en la data."""
+Debajo da tu recomendación específica para Over/Under justificando por qué hay 'Value'."""
 }
 
-def analyze_ai(match_data, prompt_text):
-    with st.spinner('🤖 Inteligencia Artificial analizando bases de datos... (Puede tomar 5-10 segs)'):
+def analyze_ai(match_data, prompt_text, model_name='gemini-2.5-pro'):
+    with st.spinner('🤖 I.A. Cuántica analizando bases de datos... (Calculando varianzas esperadas)'):
         try:
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model_name,
                 contents=f"{prompt_text}\n\nDato a investigar hoy (Usa el Buscador de Google incorporado):\n{match_data}",
                 config=types.GenerateContentConfig(
                     tools=[{"google_search": {}}],
@@ -538,7 +549,10 @@ with tab1:
                 try:
                     with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
                         writer = csv.writer(f, delimiter=';')
-                        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, "Análisis Bot", "Radar Matrix Guardado", "N/A", "Pendiente", "0"])
+                        res_limpio = resultado.replace('\n', ' ')
+                        input_limpio = user_input.replace('\n', ' ')[:200]
+                        conf_clase = "Alto" if "conf-alto" in confianza_clase else "Medio" if "conf-medio" in confianza_clase else "Bajo"
+                        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), deporte, input_limpio, res_limpio, conf_clase, "Pendiente", "0"])
                 except Exception:
                     pass
     st.markdown("</div>", unsafe_allow_html=True)
@@ -610,6 +624,16 @@ with tab_stats:
                     with st.spinner("Calculando desviaciones estándar y promedios..."):
                         res_stats = analyze_ai(input_stats, PROMPTS[prompt_key])
                         st.session_state['res_stats_radar_web'] = f"### 📊 Resultado Micro-Stats\n<div class='glass-card conf-medio'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{res_stats}</pre></div>"
+                        
+                        # Guardar result de micro-stats
+                        try:
+                            with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
+                                writer = csv.writer(f, delimiter=';')
+                                res_limpio = res_stats.replace('\n', ' ')
+                                input_limpio = input_stats.replace('\n', ' ')[:150]
+                                writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), "Stats/Micro", input_limpio, res_limpio, "Medio", "Pendiente", "0"])
+                        except Exception:
+                            pass
                 else:
                     st.error("❌ ENERGÍA AGOTADA.")
 
@@ -644,6 +668,16 @@ with tab2:
                         
                         confianza_clase = "conf-alto" if "Alto" in resultado_api else "conf-medio" if "Medio" in resultado_api else "conf-bajo"
                         st.markdown(f"<div class='glass-card {confianza_clase}'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_api}</pre></div>", unsafe_allow_html=True)
+                        
+                        # Guardar predicción
+                        try:
+                            with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
+                                writer = csv.writer(f, delimiter=';')
+                                res_limpio = resultado_api.replace('\n', ' ')
+                                conf_str = "Alto" if "conf-alto" in confianza_clase else "Medio" if "conf-medio" in confianza_clase else "Bajo"
+                                writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), sport, f"{home} vs {away} (Radar Global)", res_limpio, conf_str, "Pendiente", "0"])
+                        except Exception:
+                            pass
                     else:
                         st.warning("📡 Sin resultados: El equipo no tiene líneas abiertas en Wall Street actualmente.")
                 else:
@@ -674,6 +708,16 @@ with tab3:
             
             resultado_parlay = analyze_ai(f"Partidos top de hoy en {parlay_sport}", prompt_parlay)
             st.markdown(f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>", unsafe_allow_html=True)
+            
+            # Guardar predicción del parlay
+            try:
+                with open('historial_apuestas.csv', mode='a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f, delimiter=';')
+                    res_limpio = resultado_parlay.replace('\n', ' ')
+                    writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M"), "Parlay", f"Parlay {parlay_sport} ({riesgo})", res_limpio, "Alto", "Pendiente", "0"])
+            except Exception:
+                pass
+                
             st.balloons()
         else:
             st.error("❌ ENERGÍA AGOTADA.")
