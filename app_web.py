@@ -701,12 +701,28 @@ with tab3:
     
     if st.button("🧬 Generar Ticket Perfecto"):
         if use_credit():
+            from datetime import datetime
+            fecha_actual = datetime.now().strftime("%Y-%m-%d")
+            
+            str_partidos_reales = f"Busca en internet el calendario exacto de hoy {fecha_actual} en {parlay_sport}."
+            if ODDS_API_KEY and ODDS_API_KEY != "tu_odds_api_key_aqui":
+                liga_codigo = "basketball_nba" if "Básquetbol" in parlay_sport else "soccer_epl"
+                try:
+                    res_api = requests.get(f"https://api.the-odds-api.com/v4/sports/{liga_codigo}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us&markets=h2h").json()
+                    if isinstance(res_api, list) and len(res_api) > 0:
+                        partidos = [f"- {m['home_team']} vs {m['away_team']} (Inicia: {m['commence_time'][:10]} {m['commence_time'][11:16]})" for m in res_api[:20]]
+                        str_partidos_reales = "Partidos REALES extraídos directo de la API (Próximos a jugarse):\n" + "\n".join(partidos)
+                except:
+                    pass
+            
             prompt_parlay = f"""Rol: Experto en Correlaciones Deportivas.
-            Genera un Parlay (Combinada) de 3 selecciones para {parlay_sport} basado en los partidos de HOY. 
+            REGLA DE ORO INQUEBRANTABLE: Hoy es exactamente {fecha_actual}. 
+            Genera un Parlay (Combinada) de 3 selecciones reales para {parlay_sport}.
+            Si te provee una lista de 'Partidos REALES extraídos directo de la API', úsalos ESTRICTAMENTE y no busques en internet. BAJO NINGÚN MOTIVO inventes partidos ni uses juegos de días anteriores.
             Perfil: {riesgo}.
             Entrega solo el ticket en formato lista, sus cuotas estimadas, y 1 oración de por qué matemáticamente están correlacionados."""
             
-            resultado_parlay = analyze_ai(f"Partidos top de hoy en {parlay_sport}", prompt_parlay)
+            resultado_parlay = analyze_ai(str_partidos_reales, prompt_parlay)
             st.markdown(f"<div class='glass-card conf-alto'><pre style='white-space: pre-wrap; font-family: Inter; color: #fff; background: transparent; border: none;'>{resultado_parlay}</pre></div>", unsafe_allow_html=True)
             
             # Guardar predicción del parlay
