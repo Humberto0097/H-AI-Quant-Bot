@@ -519,7 +519,7 @@ from bs4 import BeautifulSoup
 def buscar_equipo_api(equipo):
     with st.spinner(f"🌍 Rastrando '{equipo}' en bolsas de apuestas internacionales..."):
         try:
-            ligas = ["basketball_nba", "soccer_epl", "soccer_spain_la_liga", "soccer_uefa_champs_league", "soccer_mexico_ligamx"]
+            ligas = ["basketball_nba", "basketball_ncaab", "soccer_epl", "soccer_spain_la_liga", "soccer_uefa_champs_league", "soccer_mexico_ligamx"]
             for liga in ligas:
                 res = requests.get(f"https://api.the-odds-api.com/v4/sports/{liga}/odds/?apiKey={ODDS_API_KEY}&regions=us,eu&markets=h2h").json()
                 if isinstance(res, list):
@@ -837,7 +837,7 @@ with tab2:
     if not ODDS_API_KEY or ODDS_API_KEY == "tu_odds_api_key_aqui":
         st.error("No tienes configurada la llave secreta en el archivo .env. Esto desactivará el escaneo mundial automático.")
     else:
-        equipo_buscar = st.text_input("🔍 Fijar objetivo a rastrear en bolsas Mundiales (Ej. 'Arsenal', 'Lakers'):", placeholder="Escribe el equipo principal...")
+        equipo_buscar = st.text_input("🔍 Fijar objetivo a rastrear en bolsas Mundiales (Ej. 'Arsenal', 'Lakers', 'Duke'):", placeholder="Escribe el equipo principal...")
         
         if st.button("📡 Iniciar Triangulación de Mercados"):
             if equipo_buscar:
@@ -891,7 +891,7 @@ with tab3:
     
     colP1, colP2 = st.columns([1, 1])
     with colP1:
-        parlay_sport = st.selectbox("Mercado del Parlay:", ["Fútbol (Europa)", "Básquetbol (NBA)"])
+        parlay_sport = st.selectbox("Mercado del Parlay:", ["Fútbol (Europa)", "Básquetbol (NBA)", "Básquetbol (NCAA)"])
         riesgo = st.radio("Perfil de Riesgo:", ["Seguro (Cuota Baja)", "Agresivo (Cuota Alta)"])
     
     with colP2:
@@ -905,7 +905,12 @@ with tab3:
             
             str_partidos_reales = f"Busca en internet el calendario exacto de hoy {fecha_actual} en {parlay_sport}."
             if ODDS_API_KEY and ODDS_API_KEY != "tu_odds_api_key_aqui":
-                liga_codigo = "basketball_nba" if "Básquetbol" in parlay_sport else "soccer_epl"
+                if "NCAA" in parlay_sport:
+                    liga_codigo = "basketball_ncaab"
+                elif "Básquetbol" in parlay_sport:
+                    liga_codigo = "basketball_nba"
+                else:
+                    liga_codigo = "soccer_epl"
                 try:
                     res_api = requests.get(f"https://api.the-odds-api.com/v4/sports/{liga_codigo}/odds/?apiKey={ODDS_API_KEY}&regions=eu,us&markets=h2h").json()
                     if isinstance(res_api, list) and len(res_api) > 0:
@@ -950,7 +955,7 @@ with tab4:
     if not ODDS_API_KEY or ODDS_API_KEY == "tu_odds_api_key_aqui":
         st.warning("⚠️ Requiere tu API Key de The Odds API configurada.")
     else:
-        liga_surebet = st.selectbox("Liga a escanear:", ["soccer_epl (Premier League)", "basketball_nba (NBA)", "soccer_spain_la_liga (La Liga)"])
+        liga_surebet = st.selectbox("Liga a escanear:", ["soccer_epl (Premier League)", "basketball_nba (NBA)", "basketball_ncaab (NCAA)", "soccer_spain_la_liga (La Liga)"])
         filtro_casas = st.text_input("Filtrar por Casas de Apuestas (Opcional, separadas por coma, Ej: Betano, Olimpo, Pinnacle). Deja vacío el cuadro para rastrear todas las casas mundiales:")
         
         if st.button("📡 Buscar Dinero Fácil (Arbitraje)"):
