@@ -368,12 +368,40 @@ SCORE DE VOLATILIDAD: X.XX
 Debajo da tu recomendación específica para Over/Under justificando por qué hay 'Value'."""
 }
 
+def get_ai_memory():
+    try:
+        if os.path.exists('historial_apuestas.csv'):
+            df = pd.read_csv('historial_apuestas.csv', sep=';')
+            if 'Resultado Real' in df.columns and 'Pronóstico' in df.columns:
+                df['Resultado Real'] = df['Resultado Real'].fillna("En Juego")
+                ganadas = df[df['Resultado Real'] == "Ganada ✅"].tail(3)
+                perdidas = df[df['Resultado Real'] == "Perdida ❌"].tail(3)
+                
+                memory = ""
+                if not ganadas.empty:
+                    memory += "HITOS DE ÉXITO PASADOS (Continúa evaluando así):\n"
+                    for _, r in ganadas.iterrows():
+                        memory += f"- Contexto: {str(r['Datos Ingresados'])[:150]}... -> Tu conclusión exitosa: {str(r['Pronóstico'])[:150]}...\n"
+                
+                if not perdidas.empty:
+                    memory += "\nERRORES PASADOS (Ajusta tu modelo para no repetir esto):\n"
+                    for _, r in perdidas.iterrows():
+                        memory += f"- Contexto: {str(r['Datos Ingresados'])[:150]}... -> Tu predicción fallida: {str(r['Pronóstico'])[:150]}...\n"
+                    
+                if memory:
+                    return f"\n\n[SISTEMA DE MEMORIA ACTIVA DE APRENDIZAJE AUTOMÁTICO]\nAprende de tus últimas predicciones reales (ganadas y perdidas) para mejorar tu probabilidad actual. ¡NO repitas los errores, replica lo que salió bien!:\n{memory}"
+    except Exception as e:
+        pass
+    return ""
+
 def analyze_ai(match_data, prompt_text, model_name='gemini-2.5-pro'):
-    with st.spinner('🤖 I.A. Cuántica analizando bases de datos... (Calculando varianzas esperadas)'):
+    with st.spinner('🤖 I.A. Cuántica retroalimentándose de su base de conocimiento y calculando varianzas...'):
+        memoria_activa = get_ai_memory()
+        full_prompt = f"{prompt_text}{memoria_activa}\n\nDato a investigar hoy (Usa el Buscador de Google incorporado):\n{match_data}"
         try:
             response = client.models.generate_content(
                 model=model_name,
-                contents=f"{prompt_text}\n\nDato a investigar hoy (Usa el Buscador de Google incorporado):\n{match_data}",
+                contents=full_prompt,
                 config=types.GenerateContentConfig(
                     tools=[{"google_search": {}}],
                     temperature=0.2
@@ -870,6 +898,56 @@ with tab5:
             df_editado.to_csv(ruta_csv, index=False, sep=";")
             st.success("Sincronizado a Disco.")
             st.rerun()
+            
+    with colS2:
+        if st.button("🔄 Auto-Verificar Magia IA (Beta)"):
+            if use_credit():
+                with st.spinner("🤖 Navegando la web para buscar el marcador final oficial..."):
+                    try:
+                        cambios = False
+                        for idx, row in df_editado.iterrows():
+                            if row['Resultado Real'] == "Pendiente" or row['Resultado Real'] == "En Juego":
+                                prompt_verif = f'''Eres un resolutor de apuestas.
+                                La apuesta se hizo el {row["Fecha"]}. Deporte: {row["Deporte"]}.
+                                Contexto: {str(row["Datos Ingresados"])[:150]}
+                                Predicción que hicimos: {str(row["Pronóstico"])[:250]}
+                                
+                                Busca con urgencia en Google el RESULTADO FINAL OFICIAL de ese evento que ya se debió haber jugado.
+                                Contrasta el resultado real contra nuestra predicción.
+                                Si la predicción tuya anterior se cumplió en el partido: Responde EXACTA Y ÚNICAMENTE "Ganada ✅".
+                                Si la predicción no se dio o el rival ganó/superó el over/under: Responde EXACTA Y ÚNICAMENTE "Perdida ❌".
+                                Si el partido no se ha jugado aún o se suspendió, responde: "Pendiente".'''
+                                
+                                res_ai = client.models.generate_content(
+                                    model='gemini-2.5-flash',
+                                    contents=prompt_verif,
+                                    config=types.GenerateContentConfig(
+                                        tools=[{"google_search": {}}],
+                                        temperature=0.1
+                                    )
+                                ).text.strip()
+                                
+                                if "Ganada ✅" in res_ai:
+                                    df_editado.at[idx, 'Resultado Real'] = "Ganada ✅"
+                                    df_editado.at[idx, 'Ganancia_y_Perdida'] = 10 # Default demo win
+                                    cambios = True
+                                elif "Perdida ❌" in res_ai:
+                                    df_editado.at[idx, 'Resultado Real'] = "Perdida ❌"
+                                    df_editado.at[idx, 'Ganancia_y_Perdida'] = -10 # Default demo loss
+                                    cambios = True
+                        
+                        if cambios:
+                            df_editado.to_csv(ruta_csv, index=False, sep=";")
+                            st.success("✨ ¡Partidos resueltos automáticamente por la IA! La base de datos es ahora más inteligente.")
+                            # Pequeño delay para leer y luego rerun
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.info("🤷‍♂️ No hubo apuestas pendientes que se pudieran resolver automáticamente (o aún no han terminado).")
+                    except Exception as e:
+                        st.error(f"Fallo en la resolución automática: {e}")
+            else:
+                st.error("❌ ENERGÍA AGOTADA para verificar automáticamente.")
 
     # Calcular Datos de la Realidad
     capital_inicial = 1000 # Configurable después
