@@ -11,3 +11,6 @@ numpy>=1.24.0
 bcrypt 
 joblib 
 pandas
+supabase
+psycopg2-binary
+psutil
