@@ -137,6 +137,45 @@ def register_user(username, password, client_ip):
         return False, "USER_EXISTS"
     finally:
         conn.close()
+    def get_all_users(self):
+        """Obtiene la lista de todos los usuarios (solo para admin)"""
+        if self.USING_SUPABASE:
+            res = self.supabase.table('usuarios').select('username, creditos').execute()
+            return pd.DataFrame(res.data)
+        else:
+            if os.path.exists('usuarios.csv'):
+                return pd.read_csv('usuarios.csv')
+            return pd.DataFrame(columns=['username', 'creditos'])
+
+    def admin_update_credits(self, username, new_credits):
+        """Actualiza créditos de cualquier usuario (solo para admin)"""
+        if self.USING_SUPABASE:
+            self.supabase.table('usuarios').update({'creditos': new_credits}).eq('username', username).execute()
+        else:
+            if os.path.exists('usuarios.csv'):
+                df = pd.read_csv('usuarios.csv')
+                df.loc[df['username'] == username, 'creditos'] = new_credits
+                df.to_csv('usuarios.csv', index=False)
+        return True
+    def get_global_metrics(self):
+        """Calcula métricas globales para mostrar públicamente antes del login"""
+        if self.USING_SUPABASE:
+            res = self.supabase.table('historial_apuestas').select('resultado_real').neq('resultado_real', 'En Juego').execute()
+            df = pd.DataFrame(res.data)
+        else:
+            if os.path.exists('historial_apuestas.csv'):
+                df = pd.read_csv('historial_apuestas.csv')
+                df = df[df['resultado_real'] != 'En Juego']
+            else:
+                return 0, 0
+        
+        if df.empty:
+            return 0, 0
+            
+        win_count = len(df[df['resultado_real'].str.contains("Ganada ✅", na=False)])
+        total = len(df)
+        wr = (win_count / total * 100) if total > 0 else 0
+        return round(wr, 1), total
 
 # --- GESTIÓN DE HISTORIAL ---
 
