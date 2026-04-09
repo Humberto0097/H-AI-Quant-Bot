@@ -1,8 +1,5 @@
 import os
 import time
-
-# --- CONFIGURACIÓN DE ACCESO ADMIN ---
-ADMIN_USER = "Pedro"  # Cambia esto por tu usuario exacto
 import psutil
 import requests
 import math
@@ -662,15 +659,15 @@ with st.sidebar:
         st.session_state["username"] = ""
         st.rerun()
 
-# Contenedor central de pestañas (Dinámico para Admin)
-tab_names = ["🤖 Oráculo", "📈 Stats Avanzadas", "🌐 Escáner Individual", "🔥 Creador Parlays", "💸 Arbitraje (Surebets)", "📊 Dashboard ROI"]
-if st.session_state['username'].lower() == ADMIN_USER.lower():
-    tab_names.append("👑 Gestión Admin")
-
-tabs = st.tabs(tab_names)
-tab1, tab_stats, tab2, tab3, tab4, tab5 = tabs[0], tabs[1], tabs[2], tabs[3], tabs[4], tabs[5]
-if len(tabs) > 6:
-    tab_admin = tabs[6]
+# Contenedor central de pestañas
+tab1, tab_stats, tab2, tab3, tab4, tab5 = st.tabs([
+    "🤖 Oráculo", 
+    "📈 Stats Avanzadas",
+    "🌐 Escáner Individual", 
+    "🔥 Creador Parlays",
+    "💸 Arbitraje (Surebets)",
+    "📊 Dashboard ROI"
+])
 
 # ------------- PESTAÑA 1 (Análisis Manual + POISSON) -------------
 with tab1:
@@ -1203,42 +1200,3 @@ with tab5:
 
 
 
-# ------------- PESTAÑA ADMIN (Solo visible para el administrador) -------------
-if st.session_state['username'].lower() == ADMIN_USER.lower():
-    with tab_admin:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.title("👑 Gestión de Imperio")
-        st.subheader("Control de Usuarios y Energía")
-        
-        try:
-            usuarios_df = db.get_all_users()
-            
-            if not usuarios_df.empty:
-                # Buscador de usuario
-                user_to_edit = st.selectbox("Selecciona un Cliente para gestionar:", usuarios_df['username'].tolist())
-                
-                # Obtener créditos actuales del seleccionado
-                current_c = usuarios_df[usuarios_df['username'] == user_to_edit]['creditos'].values[0]
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.metric("Energía Actual", f"{current_c} ⚡")
-                with c2:
-                    nuevos_creditos = st.number_input("Establecer nueva Energía:", min_value=0, value=int(current_c))
-                
-                if st.button("🚀 Actualizar Energía del Cliente"):
-                    db.admin_update_credits(user_to_edit, nuevos_creditos)
-                    st.success(f"¡Energía de **{user_to_edit}** actualizada a {nuevos_creditos}!")
-                    time.sleep(1)
-                    st.rerun()
-                
-                st.markdown("---")
-                st.write("### 📋 Lista Completa de Clientes")
-                st.dataframe(usuarios_df, use_container_width=True)
-            else:
-                st.info("Aún no hay otros usuarios registrados.")
-                
-        except Exception as e:
-            st.error(f"Error cargando el panel admin: {e}")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
