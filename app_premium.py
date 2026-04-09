@@ -1,5 +1,8 @@
 import os
 import time
+
+# --- CONFIGURACIÓN DE ACCESO ADMIN ---
+ADMIN_USER = "Pedro"  # Cambia esto por tu usuario exacto
 import psutil
 import requests
 import math
