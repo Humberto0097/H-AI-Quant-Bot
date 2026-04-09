@@ -1,5 +1,8 @@
 import os
 import time
+
+# --- CONFIGURACIÓN DE SEGURIDAD ---
+INVITE_CODE = "BRUTAL2026"  # Dale este código a tus clientes para que se registren
 import psutil
 import requests
 import math
@@ -327,14 +330,17 @@ if not st.session_state["logged_in"]:
                     st.error("❌ Credenciales inválidas. Acceso Denegado.")
                     
         with tab_register:
-            st.subheader("Solicitar Acceso Gratuito")
-            st.markdown("<p style='color: #cbd5e1; font-size: 0.9rem;'>Crea tu cuenta y obtén <b>3 créditos de prueba gratuitos</b> para testear nuestra IA.<br>Para recargar, contacta al administrador.</p>", unsafe_allow_html=True)
+            st.subheader("Registro de Nuevos Miembros")
+            st.markdown(f"<p style='color: #cbd5e1; font-size: 0.9rem;'>Introduce tu <b>Código de Invitación VIP</b> para activar tu cuenta.<br>Para obtener un código, contacta al propietario.</p>", unsafe_allow_html=True)
             new_user = st.text_input("Crear Usuario Nuevo:", key="new_user")
             new_pass = st.text_input("Crear Contraseña:", type="password", key="new_pass")
+            input_code = st.text_input("🎟️ Código de Invitación VIP:", type="password", help="Pídele el código al administrador")
             
-            if st.button("🚀 Crear Cuenta de Prueba"):
-                if new_user and new_pass:
-                    # Intentar obtener la IP del cliente
+            if st.button("🚀 Validar y Crear Cuenta"):
+                if input_code != INVITE_CODE:
+                    st.error("❌ Código de Invitación inválido. No tienes permiso para crear una cuenta.")
+                elif new_user and new_pass:
+                    # Intentar obtener la IP del cliente (Ya configurado antes)
                     client_ip = "local_network"
                     try:
                         if hasattr(st, "context") and hasattr(st.context, "headers"):
@@ -350,7 +356,7 @@ if not st.session_state["logged_in"]:
                     success, message = db.register_user(new_user, new_pass, client_ip)
                     
                     if success:
-                        st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada con 3 créditos. Ahora ve a la pestaña 'Iniciar Sesión'.")
+                        st.success(f"✅ ¡Éxito! Cuenta '{new_user}' creada. Ahora ve a la pestaña 'Iniciar Sesión'.")
                     elif message == "IP_EXISTS":
                         st.error("⛔ SISTEMA ANTI-SPAM: Ya se ha creado una cuenta recientemente desde esta red/dispositivo.")
                     elif message == "USER_EXISTS":
