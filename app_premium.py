@@ -1063,7 +1063,11 @@ with tab5:
     if 'Pronóstico' in df_bd.columns:
         df_bd.rename(columns={'Pronóstico': 'pronostico'}, inplace=True)
         
-    df_bd['ganancia_y_perdida'] = pd.to_numeric(df_bd.get('ganancia_y_perdida', 0), errors='coerce').fillna(0)
+    # Asegurar que la columna de ganancias existe y tiene el formato correcto
+    if 'ganancia_y_perdida' not in df_bd.columns:
+        df_bd['ganancia_y_perdida'] = 0
+        
+    df_bd['ganancia_y_perdida'] = pd.to_numeric(df_bd['ganancia_y_perdida'], errors='coerce').fillna(0)
     
     st.warning("⚠️ Haz doble clic en las columnas 'resultado_real' y 'ganancia_y_perdida' en la tabla inferior para asentar tus operaciones.")
     
