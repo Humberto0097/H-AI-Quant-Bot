@@ -1046,7 +1046,9 @@ with tab4:
 with tab5:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     st.subheader("📈 Bankroll Data Warehouse")
-    st.markdown("""<details class="cyber-manual"><summary>MANUAL DE OP    # Obtener historial desde el manager
+    st.markdown("""<details class="cyber-manual"><summary>MANUAL DE OPERACIÓN: WAREHOUSE CONTABLE</summary><p><b>Función:</b> Almacén inmutable estadístico de tus operaciones para proyectar y diagramar tu curva fiduciaria y de rendimientos reales.<br><b>Uso:</b> Liquida la ganancia (usd) o pérdida (-usd) y el resultado en la cuadrícula y pulsa en Guardar Permanentes. El gráfico principal trazará matemáticamente tu Delta de Capital, calculando tu Win-Rate estricto y ROI global.</p></details>""", unsafe_allow_html=True)
+    
+    # Obtener historial desde el manager
     df_bd = db.get_full_history(st.session_state['username'])
     
     # Manejo de nombres de columnas antiguos para compatibilidad
