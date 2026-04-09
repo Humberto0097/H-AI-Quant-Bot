@@ -308,26 +308,9 @@ if "username" not in st.session_state:
     st.session_state["username"] = ""
 
 if not st.session_state["logged_in"]:
-    st.markdown("<h1 class='premium-title' style='margin-top: 30px;'>DARK POOL SPORTS</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='premium-title' style='margin-top: 50px;'>DARK POOL SPORTS</h1>", unsafe_allow_html=True)
     st.markdown("<p class='subtitle'>IA CUÁNTICA DE PREDICCIÓN</p>", unsafe_allow_html=True)
     
-    # --- INSIGNIA DE VERACIDAD PÚBLICA ---
-    wr_global, total_p = db.get_global_metrics()
-    
-    col_v1, col_v2, col_v3 = st.columns([1,2,1])
-    with col_v2:
-        alerta_glow = "#00f2fe" if wr_global > 70 else "#f87171"
-        st.markdown(f"""
-            <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid {alerta_glow}44; border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 30px; backdrop-filter: blur(10px);">
-                <p style="color: #94a3b8; font-size: 0.7rem; letter-spacing: 2px; margin: 0; text-transform: uppercase;">Rendimiento del Algoritmo (Verificado)</p>
-                <h1 style="color: {alerta_glow}; font-size: 2.5rem; margin: 10px 0; text-shadow: 0 0 20px {alerta_glow}88;">{wr_global}% HIT RATE</h1>
-                <p style="color: #fff; font-size: 0.8rem; margin: 0;">Basado en <b>{total_p}</b> análisis resueltos en tiempo real</p>
-                <div style="display: inline-block; background: {alerta_glow}22; padding: 4px 12px; border-radius: 20px; margin-top: 10px; border: 1px solid {alerta_glow}44;">
-                    <span style="color: {alerta_glow}; font-size: 0.7rem;">● LIVE FEED ACTIVE</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
     colA, colB, colC = st.columns([1,2,1])
     with colB:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -626,8 +609,16 @@ with st.sidebar:
     st.markdown("## 🤖 DARK POOL SPORTS")
     st.markdown("<p style='font-size: 0.8rem; color: #00f2fe; margin-top: -15px;'>By Humberto1997</p>", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("### 🎛️ Panel de Control")
-    st.markdown("Tu agencia personal de datos deportivos, conectada en la nube y alimentada por IA Cuántica.")
+    # --- MINI INSIGNIA DE HIT RATE ---
+    wr_g, total_g = db.get_global_metrics()
+    g_color = "#00f2fe" if wr_g > 70 else "#ff4b4b"
+    st.markdown(f"""
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid {g_color}33; padding: 10px; border-radius: 10px; text-align: center;">
+            <p style="margin:0; font-size: 0.6rem; color: #94a3b8; letter-spacing: 1px;">ALGORITMO HIT-RATE</p>
+            <h2 style="margin: 0; color: {g_color}; font-size: 1.5rem;">{wr_g}%</h2>
+            <p style="margin:0; font-size: 0.5rem; color: #fff;">Muestra: {total_g} análisis</p>
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     
     st.markdown("💡 **Status del Sistema:**")
