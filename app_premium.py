@@ -528,18 +528,29 @@ def analyze_ai(match_data, prompt_text, model_name='gemini-2.5-pro'):
     with st.spinner('🤖 I.A. Cuántica retroalimentándose de su base de conocimiento y calculando varianzas...'):
         memoria_activa = get_ai_memory()
         full_prompt = f"{prompt_text}{memoria_activa}\n\nDato a investigar hoy (Usa el Buscador de Google incorporado):\n{match_data}"
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    tools=[{"google_search": {}}],
-                    temperature=0.2
+        # Sistema de reintentos automático para evitar crasheos por error 503
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        tools=[{"google_search": {}}],
+                        temperature=0.2
+                    )
                 )
-            )
-            return response.text
-        except Exception as e:
-            return f"Error en IA: {e}"
+                return response.text
+            except Exception as e:
+                error_msg = str(e)
+                if "503" in error_msg and attempt < max_retries - 1:
+                    time.sleep(3) # Esperar 3 segundos antes de volver a intentar
+                    # Si falla el pro por alta demanda, intentamos con el de contingencia
+                    if "pro" in model_name: 
+                        model_name = 'gemini-2.5-flash'
+                    continue
+                if attempt == max_retries - 1:
+                    return f"Error en IA: {e}"
 
 from collections import Counter
 from bs4 import BeautifulSoup
@@ -586,12 +597,20 @@ def web_scraper_alineaciones(equipo):
                 
             info_cruda = " ".join(snippets)
             
-            # Pasarlo a Gemini para que lo estructure bonito
+            # Pasarlo a Gemini para que lo estructure bonito (con reintentos)
             prompt_resumen = f"Lee estos recortes de noticias en Google sobre el equipo '{equipo}' y resume su alineación probable y especialmente quiénes están LESIONADOS o DUDAS. Sé directo.\n\nNoticias:\n{info_cruda}"
-            respuesta_bot = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_resumen).text
             
-            return respuesta_bot
-            
+            for attempt in range(3):
+                try:
+                    respuesta_bot = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_resumen).text
+                    return respuesta_bot
+                except Exception as e:
+                    if "503" in str(e) and attempt < 2:
+                        time.sleep(2)
+                        continue
+                    if attempt == 2:
+                        return f"Error leyendo Google: {e}"
+                        
         except Exception as e:
             return f"Error leyendo Google: {e}"
 
