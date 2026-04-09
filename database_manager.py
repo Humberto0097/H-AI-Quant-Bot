@@ -157,25 +157,32 @@ def register_user(username, password, client_ip):
                 df.loc[df['username'] == username, 'creditos'] = new_credits
                 df.to_csv('usuarios.csv', index=False)
         return True
-    def get_global_metrics(self):
-        """Calcula métricas globales para mostrar públicamente antes del login"""
-        if self.USING_SUPABASE:
-            res = self.supabase.table('historial_apuestas').select('resultado_real').neq('resultado_real', 'En Juego').execute()
+
+# --- MÉTRICAS GLOBALES ---
+
+def get_global_metrics():
+    """Calcula métricas globales para mostrar públicamente antes del login"""
+    if USING_SUPABASE:
+        try:
+            supabase = get_supabase_client()
+            res = supabase.table('historial_apuestas').select('resultado_real').neq('resultado_real', 'En Juego').execute()
             df = pd.DataFrame(res.data)
-        else:
-            if os.path.exists('historial_apuestas.csv'):
-                df = pd.read_csv('historial_apuestas.csv')
-                df = df[df['resultado_real'] != 'En Juego']
-            else:
-                return 0, 0
-        
-        if df.empty:
+        except:
             return 0, 0
-            
-        win_count = len(df[df['resultado_real'].str.contains("Ganada ✅", na=False)])
-        total = len(df)
-        wr = (win_count / total * 100) if total > 0 else 0
-        return round(wr, 1), total
+    else:
+        if os.path.exists(LOCAL_CSV):
+            df = pd.read_csv(LOCAL_CSV, sep=";")
+            df = df[df['resultado_real'] != 'En Juego']
+        else:
+            return 0, 0
+    
+    if df.empty:
+        return 0, 0
+        
+    win_count = len(df[df['resultado_real'].str.contains("Ganada ✅", na=False)])
+    total = len(df)
+    wr = (win_count / total * 100) if total > 0 else 0
+    return round(wr, 1), total
 
 # --- GESTIÓN DE HISTORIAL ---
 
